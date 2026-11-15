@@ -51,6 +51,26 @@ body.mobile .scoreboard{height:54px}body.mobile .portrait{height:36px;width:38px
 
 
 
+
+
+<meta name="tank-version" content="1.1.0">
+<meta name="tank-build" content="db89d4cf851835e4">
+<style>
+#release-version{font-variant-numeric:tabular-nums}
+.release-notes{margin:14px 0;border-top:1px solid #cccac3;padding-top:10px;font-size:12px}
+.release-notes summary{cursor:pointer;color:#555b68}
+.release-notes p{font-size:12px;margin:10px 0}
+.release-notes ul,.release-changes{padding-left:19px;font-size:13px;line-height:1.65}
+.release-notes li,.release-changes li{margin:7px 0}
+#release-notice{position:absolute;top:65px;right:2vw;z-index:5;max-width:min(520px,86vw);
+display:flex;gap:10px;align-items:center;padding:9px 12px;border-radius:6px;
+background:#242836;color:#faf9f5;font-size:12px;box-shadow:0 2px 8px #20233133}
+#release-notice .tool{white-space:nowrap;font-size:12px}
+.mobile #release-notice{top:39px;right:12px;max-width:75%;padding:5px 8px}
+.mobile #release-version{font-size:11px;padding:2px 5px}
+@media(orientation:landscape) and (max-height:600px){#release-notice{top:39px}}
+@media(max-width:420px){#release-notice{top:51px;flex-wrap:wrap}.mobile #release-notice{top:39px}}
+</style>
 </head>
 <body>
 <div class="stage">
@@ -73,13 +93,14 @@ body.mobile .scoreboard{height:54px}body.mobile .portrait{height:36px;width:38px
 (function (global) {
   'use strict';
   const TAU = Math.PI * 2, WALL = .075, BODY = .181, SHOT = .033, STEP = 1 / 120;
+  const SEEKER_DELAY = 2;
   const clamp = (n, a, b) => Math.max(a, Math.min(b, n));
   const angleDiff = (a, b) => Math.atan2(Math.sin(a-b), Math.cos(a-b));
   const dist = (a,b) => Math.hypot(a.x-b.x,a.y-b.y);
   const ITEMS = {
     shield: ['护盾','抵挡一次命中'], rapid: ['连发','按住扫射，松开即结束，最长 3 秒'],
     triple: ['三连发','一次射出三颗扇形弹'], laser: ['激光','瞬发光束，最多反弹六次'],
-    seeker: ['追踪弹','出膛后追踪最近的存活坦克，可能折返追自己'], frag: ['破片弹','命中或飞行 1.1 秒时炸成十二片，碎片碰墙即消失'],
+    seeker: ['追踪弹',`直飞 ${SEEKER_DELAY} 秒，碰墙反弹，随后追踪最近的存活坦克；尾烟显示目标颜色`], frag: ['破片弹','命中或飞行 1.1 秒时炸成十二片，碎片碰墙即消失'],
     mine: ['地雷','车尾布雷，离开后感应引爆']
   };
   const randomInt = n => Math.floor(Math.random()*n);
@@ -256,14 +277,13 @@ body.mobile .scoreboard{height:54px}body.mobile .portrait{height:36px;width:38px
       b.gone=true;
     }
     guide(b,dt){
+      if(b.age<SEEKER_DELAY)return;
       let enemy=null;
       for(const tank of this.tanks){
         if(tank.alive && (!enemy || dist(b,tank)<dist(b,enemy)))enemy=tank;
       }
       if(!enemy){b.targetId=null;return;}
       if(b.targetId!==enemy.id){b.targetId=enemy.id;b.repath=0;}
-      // Give the missile forward travel before it starts steering, including back toward its launcher.
-      if(b.age<.8)return;
       b.repath-=dt;
       if(b.repath<=0){
         b.repath=.12;const m=this.maze, route=m.route(m.cell(b),m.cell(enemy));
@@ -379,7 +399,7 @@ body.mobile .scoreboard{height:54px}body.mobile .portrait{height:36px;width:38px
       input.held=this.hold>0;this.hold-=dt;return input;
     }
   }
-  global.TankArena={Game,Maze,EasyPilot,ITEMS,STEP,BODY,SHOT,idle,dist,angleDiff,clamp};
+  global.TankArena={Game,Maze,EasyPilot,ITEMS,STEP,BODY,SHOT,SEEKER_DELAY,idle,dist,angleDiff,clamp};
 })(globalThis);
 
 </script>
@@ -1116,7 +1136,9 @@ body.mobile .scoreboard{height:54px}body.mobile .portrait{height:36px;width:38px
         const p = atlas.centers[cell];
         const travel = atlas.range(here, cell);
         const cover = !atlas.cellSight(cell, there);
-        const score = (cover ? 2.3 : 0) + Math.min(atlas.range(cell, there), 6) * .4 +
+        const eta=travel/2.02;
+        const crossing=this.traffic ? this.traffic.risk(p,eta)+this.traffic.risk(p,eta+.75) : 0;
+        const score = (cover ? 2.3 : 0) - crossing*1.15 + Math.min(atlas.range(cell, there), 6) * .4 +
           maze.links[cell].length * .30 - travel * .31 - atlas.depth[cell] * .48 -
           this.enemyPressure(game, enemy, p);
         if (!best || score > best.value) best = { kind: 'retreat', target: p, value: score };
@@ -1222,7 +1244,7 @@ body.mobile .scoreboard{height:54px}body.mobile .portrait{height:36px;width:38px
    Scores describe a proposed shot, never a command to move the turret for free. */
 (function (global) {
   'use strict';
-  const { BODY, SHOT, dist, clamp, angleDiff } = TankArena;
+  const { BODY, SHOT, SEEKER_DELAY, dist, clamp, angleDiff } = TankArena;
   const { H, SPEED, TURN, pose, bearing, flight, along, advance, positionAt } = TankTactics;
   const reach = BODY + SHOT;
   const horizon = 2.12;
@@ -1480,17 +1502,18 @@ body.mobile .scoreboard{height:54px}body.mobile .portrait{height:36px;width:38px
     }
 
     seeker(game, me, foe, forecasts, a) {
-      const launch = flight(game.maze, me, a, .8 * 2.65, SHOT, 5);
-      const end = along(launch, .8 * 2.65);
+      const distance = SEEKER_DELAY * 2.65;
+      const launch = flight(game.maze, me, a, distance, SHOT, 12);
+      const end = along(launch, distance);
       if (!end) return { value: -1 };
       const returnAt = returnTime(me, launch, 2.65);
-      const foePosition = positionAt(forecasts[0].line, .8);
+      const foePosition = positionAt(forecasts[0].line, SEEKER_DELAY);
       const chase = dist(end, me) - dist(end, foePosition);
       const cell = game.maze.cell(end);
       const hops = game.maze.route(cell, game.maze.cell(foePosition)).length;
       const value = returnAt < .76 ? -1 :
         .38 + clamp(chase * .23, -.67, .50) - Math.max(0, hops - 3) * .045;
-      return { value, kill: 0, impact: .8, banks: launch.length - 1, selfTime: returnAt, path: launch };
+      return { value, kill: 0, impact: SEEKER_DELAY, banks: launch.length - 1, selfTime: returnAt, path: launch };
     }
 
     aim(game, me, foe, forecasts) {
@@ -1634,7 +1657,7 @@ body.mobile .scoreboard{height:54px}body.mobile .portrait{height:36px;width:38px
       return null;
     }
 
-    trigger(game, me, foe, dt, cmd, shot, forecasts, policy, enemyInput = {}) {
+    trigger(game, me, foe, dt, cmd, shot, forecasts, policy, enemyInput = {}, duel = null) {
       if (!foe.alive) return;
       if (me.rapid) {
         cmd.held = game.time < this.burstUntil && this.ordnance.sweepSafe(game, me, cmd, foe);
@@ -1675,6 +1698,7 @@ body.mobile .scoreboard{height:54px}body.mobile .portrait{height:36px;width:38px
       if (weapon && weapon !== 'laser') threshold = .39;
       if (foe.item === 'shield' && ammo > 2) threshold -= .075;
       if (weapon === 'seeker') threshold = .39;
+      if (shot.seal && ammo>=2) threshold=Math.min(threshold,.43);
       if (shot.followup && ammo > 1) threshold = Math.min(threshold, .34);
       // One expendable slot is worth less than an immediate intercept, but
       // keep it when several guesses merely pass near the enemy. Recovering
@@ -1686,6 +1710,7 @@ body.mobile .scoreboard{height:54px}body.mobile .portrait{height:36px;width:38px
         else if (expires > 1.3 && shot.kill < .37) threshold += .23;
       }
       if (shot.value < threshold + policy.threshold) return;
+      if (duel?.conserve(game,me,foe,shot)) return;
       if (weapon === 'seeker' && !this.ordnance.guidedLaunch(game, me, foe, cmd, shot, forecasts[0])) return;
       if (!this.canEscape(game, me, real, cmd, shot, foe)) return;
       cmd.press = 1;
@@ -1923,6 +1948,10 @@ body.mobile .scoreboard{height:54px}body.mobile .portrait{height:36px;width:38px
       const options = [];
       if (!followup) options.push(this.last);
       options.push(aimDrive(1, toGoal), aimDrive(-1, toGoal + Math.PI));
+      if (ctx.goal.watch) {
+        const watch=bearing(p,ctx.goal.watch);
+        options.push(aimDrive(1,watch),aimDrive(-1,watch),aimDrive(0,watch));
+      }
       if (ctx.shot && ctx.shot.value > .14) {
         const a = ctx.shot.a;
         options.push(aimDrive(0, a), aimDrive(-1, a), aimDrive(1, a));
@@ -1976,7 +2005,8 @@ body.mobile .scoreboard{height:54px}body.mobile .portrait{height:36px;width:38px
       for (let i = node.steps; i < steps; i++) {
         const start = pose(p);
         const arrived = !ctx.underFire && !ctx.combat && previousGap < .13;
-        const control = arrived ? fixed(0, 0) : commandFor(move, p, H);
+        const control = arrived && ctx.goal.watch ? commandFor(aimDrive(0,bearing(p,ctx.goal.watch)),p,H) :
+          arrived ? fixed(0, 0) : commandFor(move, p, H);
         advance(ctx.g, p, control, H);
         line.push(pose(p));
         const weight = 1 / (1 + .22 * i);
@@ -1998,9 +2028,15 @@ body.mobile .scoreboard{height:54px}body.mobile .portrait{height:36px;width:38px
       }
       const facing = ctx.combat ? 0 :
         Math.cos(angleDiff(bearing(p, ctx.goal.p), p.a)) * .18;
-      const driveWeight = ctx.goal.type === 'press' ? 5.1 : ctx.goal.type === 'flank' ? 4.4 : ctx.combat ? 1.35 : 5.2;
+      const driveWeight = ctx.goal.type === 'close' ? 7.2 : ctx.goal.type === 'press' ? 5.1 : ctx.goal.type === 'flank' ? 4.4 : ctx.combat ? 1.35 : 5.2;
       let score = progress * driveWeight + facing - change;
       score += aiming * 1.30 + opportunity * 2.25;
+      if (ctx.goal.watch) {
+        const watch=ctx.goal.watch;
+        const facingError=Math.abs(angleDiff(bearing(p,watch),p.a));
+        const proximity=clamp(1.7-dist(p,ctx.goal.p),0,1);
+        score+=proximity*(1.6-facingError);
+      }
       if (ctx.window && ctx.enemy.alive && ctx.goal.type !== 'pickup') {
         const v = line[Math.min(line.length,4)-1];
         score += ctx.window.score(v, .48) * 3.1;
@@ -2032,7 +2068,8 @@ body.mobile .scoreboard{height:54px}body.mobile .portrait{height:36px;width:38px
     search(game, me, enemy, goal, shot, field, window = null) {
       const underFire = field.incoming();
       const combat = enemy.alive && shot?.viable &&
-        (['advance','intercept','press'].includes(goal.type) || shot.value > .77);
+        (['advance','intercept','press','close','peek'].includes(goal.type) || shot.value > .77 ||
+          (shot.seal && goal.type==='rotate'));
       const ctx = { g: game, me, enemy, goal, shot, field, underFire, combat, window };
       const root = this.root(me);
       root.missiles = field.missiles.initial();
@@ -2041,32 +2078,45 @@ body.mobile .scoreboard{height:54px}body.mobile .portrait{height:36px;width:38px
       // must earn its extra complexity by improving the same objective.
       let best = null;
       const partial = [];
+      const alternatives=field.alternateMissileTarget ? new Map() : null;
+      const consider=node=>{
+        if (!best || node.score>best.score) best=node;
+        if (alternatives && (!alternatives.has(node.first) || node.score>alternatives.get(node.first).score)) {
+          alternatives.set(node.first,node);
+        }
+      };
       for (const move of first) {
         const node = this.extend(ctx, root, move, 4);
         partial.push(node);
         const long = this.extend(ctx, node, move, field.steps - 4);
-        if (!best || long.score > best.score) best = long;
+        consider(long);
       }
 
       if (underFire || best.peak > 2 || (combat && best.opportunity < .15)) {
-        const beam = this.diversify(partial, underFire ? 5 : 3);
+        const crowded = game.bullets.length>18;
+        const beam = this.diversify(partial, underFire && !crowded ? 5 : 3);
         const middle = [];
         for (const node of beam) {
           for (const move of this.options(ctx, node.p, true)) {
             middle.push(this.extend(ctx, node, move, 4));
           }
         }
-        for (const node of this.diversify(middle, 4)) {
+        for (const node of this.diversify(middle, crowded ? 2 : 4)) {
           for (const move of this.options(ctx, node.p, true)) {
             const leaf = this.extend(ctx, node, move, field.steps - 8);
-            if (leaf.score > best.score) best = leaf;
+            consider(leaf);
           }
         }
       }
-      this.last = !ctx.underFire && !ctx.combat && dist(me, goal.p) < .13 ? fixed(0, 0) : best.first;
+      if (alternatives) {
+        const top=[...alternatives.values()].sort((a,b)=>b.score-a.score).slice(0,4);
+        best=field.missiles.audit(top,field.alternateMissileTarget);
+      }
+      const watching=!ctx.underFire && !ctx.combat && goal.watch && dist(me,goal.p)<.13;
+      this.last = watching ? aimDrive(0,bearing(me,goal.watch)) : best.first;
       this.line = best.history;
       this.lastSafety = best.peak;
-      return best.first;
+      return this.last;
     }
   }
 
@@ -2584,7 +2634,7 @@ body.mobile .scoreboard{height:54px}body.mobile .portrait{height:36px;width:38px
    Treating all three as constant-speed bullets gives misleading evasions. */
 (function (global) {
   'use strict';
-  const { BODY, SHOT, dist, clamp, angleDiff } = TankArena;
+  const { BODY, SHOT, SEEKER_DELAY, dist, clamp, angleDiff } = TankArena;
   const { H, pose, advance, flight, along, bearing, positionAt } = TankTactics;
 
   function pointToRay(point, part) {
@@ -2609,7 +2659,7 @@ body.mobile .scoreboard{height:54px}body.mobile .portrait{height:36px;width:38px
     let selfDanger = Infinity;
     let enemyDanger = Infinity;
     let enemyLock = 0;
-    for (let n = 1; n <= 29; n++) {
+    for (let n = 1; n <= Math.ceil((SEEKER_DELAY + 1.52) / step); n++) {
       const time = step * n;
       shell.age = time;
       if (n < 8) advance(game, self, cmd, step);
@@ -2632,7 +2682,7 @@ body.mobile .scoreboard{height:54px}body.mobile .portrait{height:36px;width:38px
       shell.dx = path.at(-1).dx;
       shell.dy = path.at(-1).dy;
       if (dist(shell, self) > BODY + SHOT + .05) clear = true;
-      if (shell.targetId === foe.id && time > .8) enemyLock += step;
+      if (shell.targetId === foe.id) enemyLock += step;
     }
     return {
       unsafe: selfDanger < BODY + SHOT + .015 && enemyDanger > BODY + SHOT,
@@ -3162,8 +3212,8 @@ body.mobile .scoreboard{height:54px}body.mobile .portrait{height:36px;width:38px
    the distance bisector can switch the lock onto the other tank. */
 (function(global) {
   'use strict';
-  const { BODY, SHOT, clamp, dist, angleDiff } = TankArena;
-  const { H, bearing, flight, along } = TankTactics;
+  const { BODY, SHOT, SEEKER_DELAY, clamp, dist, angleDiff } = TankArena;
+  const { H, bearing, flight, along, relativeClearance } = TankTactics;
 
   class MissileEvasion {
     constructor(game, me, foe, forecast) {
@@ -3214,6 +3264,7 @@ body.mobile .scoreboard{height:54px}body.mobile .portrait{height:36px;width:38px
     }
 
     guide(shell, me, enemy, dt) {
+      if (shell.age<SEEKER_DELAY) return;
       const otherAlive=this.foe.alive;
       const ownDist=dist(shell,me);
       const enemyDist=otherAlive?dist(shell,enemy):Infinity;
@@ -3224,7 +3275,6 @@ body.mobile .scoreboard{height:54px}body.mobile .portrait{height:36px;width:38px
         shell.targetId=id;
         shell.repath=0;
       }
-      if (shell.age<.8) return;
       shell.repath-=dt;
       if (shell.repath<=0) {
         shell.repath=.12;
@@ -3238,21 +3288,74 @@ body.mobile .scoreboard{height:54px}body.mobile .portrait{height:36px;width:38px
       shell.dy=Math.sin(old+turn);
     }
 
-    distanceToLeg(p, q, segment, length) {
-      const fraction=segment.start/length;
-      const span=(segment.end-segment.start)/length;
-      const x=p.x+(q.x-p.x)*fraction-segment.x;
-      const y=p.y+(q.y-p.y)*fraction-segment.y;
-      const dx=(q.x-p.x)*span-segment.dx*(segment.end-segment.start);
-      const dy=(q.y-p.y)*span-segment.dy*(segment.end-segment.start);
-      const k=clamp(-(x*dx+y*dy)/(dx*dx+dy*dy||1),0,1);
-      return Math.hypot(x+k*dx,y+k*dy);
+    alternative(forecasts) {
+      if (!this.seeds.length || !this.forecast) return null;
+      let best=null, score=.05;
+      for (const f of forecasts) {
+        if (f.line===this.forecast || f.weight<.065) continue;
+        const horizon=Math.min(8,f.line.length-1,this.forecast.length-1);
+        const shift=dist(f.line[horizon],this.forecast[horizon]);
+        if (shift<.43) continue;
+        for (const b of this.seeds) {
+          const margin=Math.abs(dist(b,this.me)-dist(b,this.foe));
+          if (margin>shift+2.7) continue;
+          const value=f.weight*Math.min(2,shift)/(1+.4*margin);
+          if (value>score) {score=value;best=f.line;}
+        }
+      }
+      return best;
     }
 
-    advance(states, p, q, step) {
-      if (!states) return 0;
-      const enemy0=this.forecast?.[step]||this.foe;
-      const enemy1=this.forecast?.[step+1]||this.foe;
+    audit(nodes,alternate) {
+      let best=null,bestScore=-Infinity;
+      for (const node of nodes) {
+        const states=this.initial();
+        let before=this.me, peak=0;
+        for(let j=0;j<node.history.length;j++) {
+          const after=node.history[j];
+          peak=Math.max(peak,this.advance(states,before,after,j,alternate)/(1+.22*j));
+          before=after;
+        }
+        // The main forecast was already charged in the tree search.
+        const value=node.score-.92*Math.max(0,peak-node.peak);
+        if (value>bestScore) { bestScore=value;best=node; }
+      }
+      return best;
+    }
+
+    // First entry of two moving circles on a unit-time segment.
+    firstContact(p,q,x,y,dx,dy) {
+      const ox=p.x-x, oy=p.y-y;
+      const vx=q.x-p.x-dx, vy=q.y-p.y-dy;
+      const c=ox*ox+oy*oy-(BODY+SHOT)**2;
+      if (c<=0) return 0;
+      const a=vx*vx+vy*vy, b=ox*vx+oy*vy, d=b*b-a*c;
+      if (!a || b>=0 || d<0) return Infinity;
+      const entry=c/(-b+Math.sqrt(d));
+      return entry<=1 ? entry : Infinity;
+    }
+
+    contactLeg(shell,a,b,c,d,dx,dy) {
+      const own=shell.armed || shell.owner!==this.me.id;
+      const other=this.foe.alive && (shell.armed || shell.owner!==this.foe.id);
+      const enemyHit=other ? this.firstContact(c,d,shell.x,shell.y,dx,dy) : Infinity;
+      const end={x:shell.x+dx,y:shell.y+dy};
+      let closest=Infinity;
+      if (own) {
+        closest=relativeClearance(a,b,shell,end);
+        if (enemyHit!==Infinity) {
+          const ourHit=this.firstContact(a,b,shell.x,shell.y,dx,dy);
+          if (enemyHit<ourHit || (enemyHit===ourHit && this.foe.id>this.me.id)) closest=Infinity;
+        }
+      }
+      if (enemyHit!==Infinity || closest<=BODY+SHOT) shell.done=true;
+      return closest;
+    }
+
+    advance(states, p, q, step, forecast=this.forecast) {
+      if (!states || states.every(s=>s.done)) return 0;
+      const enemy0=forecast?.[step]||this.foe;
+      const enemy1=forecast?.[step+1]||this.foe;
       let risk=0;
       // Split each movement segment to follow the missile's limited turn radius.
       for (let n=1;n<=3;n++) {
@@ -3271,32 +3374,38 @@ body.mobile .scoreboard{height:54px}body.mobile .portrait{height:36px;width:38px
           if (shell.liveTarget >= 0) shell.target = shell.liveTarget === this.me.id ? b : d;
           this.guide(shell,b,d,dt);
           const len=shell.speed*dt;
-          const path=flight(this.game.maze,shell,Math.atan2(shell.dy,shell.dx),len,SHOT,4);
           const owner=shell.owner===this.me.id?b:d;
           if (dist(shell,owner)>BODY+SHOT+.001) shell.armed=true;
           let closest=Infinity;
-          for (const part of path) {
-            if (part.bounced) shell.armed=true;
-            if (shell.armed || shell.owner!==this.me.id) {
-              closest=Math.min(closest,this.distanceToLeg(a,b,part,len));
+          const wall=this.game.maze.cast(shell.x,shell.y,shell.dx,shell.dy,len,SHOT);
+          if (!wall) {
+            const dx=shell.dx*len, dy=shell.dy*len;
+            closest=this.contactLeg(shell,a,b,c,d,dx,dy);
+            shell.x+=dx; shell.y+=dy;
+          } else {
+            const path=flight(this.game.maze,shell,Math.atan2(shell.dy,shell.dx),len,SHOT,4);
+            for (const part of path) {
+              if (part.bounced) shell.armed=true;
+              const span=part.end-part.start;
+              const point=(p,q,t)=>({x:p.x+(q.x-p.x)*t,y:p.y+(q.y-p.y)*t});
+              shell.x=part.x; shell.y=part.y;
+              closest=Math.min(closest,this.contactLeg(shell,point(a,b,part.start/len),
+                point(a,b,part.end/len),point(c,d,part.start/len),point(c,d,part.end/len),
+                part.dx*span,part.dy*span));
+              if (shell.done) break;
             }
-            if (this.foe.alive && (shell.armed||shell.owner!==this.foe.id) &&
-                this.distanceToLeg(c,d,part,len)<BODY+SHOT) {
-              shell.done=true;
-              break;
-            }
+            const end=along(path,len);
+            if (!end) {shell.done=true;continue;}
+            Object.assign(shell,end,{dx:path.at(-1).dx,dy:path.at(-1).dy});
           }
-          const end=along(path,len);
-          if (!end) {shell.done=true;continue;}
-          Object.assign(shell,end,{dx:path.at(-1).dx,dy:path.at(-1).dy});
           // The missile is faster on a straight. Preserve crossing room early
           // instead of rewarding a retreat that ends against a wall.
-          if (!shell.done && shell.age >= .8 && shell.targetId === this.me.id) {
+          if (!shell.done && shell.targetId === this.me.id) {
             const gap = dist(shell,b);
             if (gap < 2.7 && this.game.maze.visible(shell,b,SHOT)) {
-              const toward = bearing(shell,b);
-              const aligned = Math.max(0,Math.cos(angleDiff(toward,Math.atan2(shell.dy,shell.dx))));
-              const sideways = Math.abs((b.x-a.x)*Math.sin(toward)-(b.y-a.y)*Math.cos(toward))/dt;
+              const ux=(b.x-shell.x)/(gap || 1), uy=(b.y-shell.y)/(gap || 1);
+              const aligned=Math.max(0,ux*shell.dx+uy*shell.dy);
+              const sideways=Math.abs((b.x-a.x)*uy-(b.y-a.y)*ux)/dt;
               const corner = this.game.maze.links[this.game.maze.cell(b)].length === 1;
               risk = Math.max(risk,(2.7-gap)*aligned*(corner ? 4.1 : 2.3)/(1+sideways));
             }
@@ -3313,6 +3422,708 @@ body.mobile .scoreboard{height:54px}body.mobile .portrait{height:36px;width:38px
     }
   }
   global.TankMissileEvasion=MissileEvasion;
+})(globalThis);
+
+</script>
+<script>
+/* Decisions for an exchange that has repeatedly failed to produce damage.
+   Memory and orders live for one round. All times are arena seconds. */
+(function (global) {
+  'use strict';
+  const { SHOT, dist, clamp, angleDiff } = TankArena;
+  const { H, TURN, SPEED, bearing, pose, advance, positionAt, routeInfo } = TankTactics;
+  const { crossing } = TankShotGeometry;
+
+  class DuelPlanner {
+    constructor() {
+      this.samples = [];
+      this.nextSample = 0;
+      this.history = [];
+      this.nextExample = 0;
+      this.prediction = null;
+      this.accuracy = 0;
+      this.lastDamage = 0;
+      this.active = false;
+      this.order = null;
+      this.nextOrder = 0;
+      this.peek = null;
+      this.nextPeek = 0;
+      this.nextAmbush = 0;
+      this.ambush = null;
+      this.cyclingAmmo = false;
+      this.nextSeal = 0;
+      this.used = new Map();
+    }
+
+    observe(game, me, foe, visible, input={}, lastTap=null) {
+      this.tap=lastTap;
+      if (!foe.alive || !me.alive || me.shieldFlash > 0 || foe.shieldFlash > 0) {
+        this.lastDamage = game.time;
+        this.cyclingAmmo=false;
+        this.ambush=null;
+        this.peek = null;
+        this.active = false;
+        this.order = null;
+      }
+      if (game.time < this.nextSample) return;
+      this.nextSample = game.time + .24;
+      const maze = game.maze;
+      this.samples.push({at:game.time, here:maze.cell(me), there:maze.cell(foe),
+        visible, loaded:game.count(me.id), contact:dist(me,foe)<1.45 && visible});
+      while (this.samples[0].at < game.time-12) this.samples.shift();
+      const nearShot=game.bullets.some(b=>b.owner===me.id && dist(b,foe)<1.85);
+      this.history.push({at:game.time,p:pose(foe),cell:maze.cell(foe),nearShot,
+        item:foe.item, cmd:{drive:input.drive||0,turn:input.turn||0,aim:input.aim}});
+      while (this.history[0].at < game.time-54) this.history.shift();
+      const n = this.samples.length;
+      if (game.time-this.lastDamage < 13 || n < 30 || !foe.alive) return;
+      let blind=0, full=0, visits=0, repeats=0, close=0, last=-1;
+      const cells = new Set();
+      for (const s of this.samples) {
+        if (!s.visible) blind++;
+        if (s.loaded>=4) full++;
+        if (s.contact) close++;
+        if (s.here!==last) {
+          if (cells.has(s.here)) repeats++;
+          visits++;
+          cells.add(s.here);
+          last=s.here;
+        }
+      }
+      const loop = visits>=5 && repeats>=visits*.38;
+      this.active = close < n*.35 &&
+        ((blind > n*.53 && (full > n*.27 || loop || cells.size<=4)) ||
+          (full > n*.61 && loop));
+      this.cyclingAmmo=this.active && game.time-this.lastDamage>32 && blind>n*.60 && full>n*.38;
+      if (!this.active) this.order=null;
+    }
+
+    recall(game,foe,forecasts) {
+      if (!this.active || !forecasts.length) return;
+      const now=game.time;
+      if (this.prediction && now>=this.prediction.due) {
+        if (now-this.prediction.due < .18) {
+          const difference=dist(foe,this.prediction.normal)-dist(foe,this.prediction.replay);
+          this.accuracy=.75*this.accuracy+.25*clamp(difference,-1,1);
+        }
+        this.prediction=null;
+      }
+      const current=this.history.at(-1);
+      let match=-1, error=.83;
+      // Only reuse a sequence once its entire continuation has been observed.
+      for (let i=0;i+10<this.history.length;i++) {
+        const old=this.history[i];
+        if (old.cell!==current.cell || old.nearShot!==current.nearShot ||
+            old.item!==current.item || now-old.at<3 || Math.abs(old.cmd.drive-current.cmd.drive)>.55) continue;
+        const mismatch=dist(foe,old.p)+.47*Math.abs(angleDiff(foe.a,old.p.a))+
+          .26*Math.abs(old.cmd.turn-current.cmd.turn);
+        if (mismatch<error) { error=mismatch; match=i; }
+      }
+      if (match<0) return;
+      const p=pose(foe), line=[pose(p)];
+      let j=match;
+      const start=this.history[match].at;
+      for (let i=1;i<forecasts[0].line.length;i++) {
+        const t=start+(i-1)*H;
+        while (j+1<this.history.length && this.history[j+1].at<=t) j++;
+        advance(game,p,this.history[j].cmd,H);
+        line.push(pose(p));
+      }
+      if (now>=this.nextExample && !this.prediction) {
+        this.prediction={due:now+.60,replay:positionAt(line,.60),normal:positionAt(forecasts[0].line,.60)};
+        this.nextExample=now+.75;
+      }
+      const weight=clamp(.30*(1-error/.83)+.30*this.accuracy,0,.40);
+      if (weight<.08) return;
+      for (const f of forecasts) f.weight*=1-weight;
+      forecasts.push({key:'previousPass',line,weight});
+      forecasts.sort((a,b)=>b.weight-a.weight);
+    }
+
+    exits(game, foe, forecasts) {
+      const maze=game.maze, cell=maze.cell(foe);
+      const exits=maze.links[cell].map(id=>({id,p:maze.center(id),support:.04}));
+      for (const f of forecasts) {
+        const next=f.line.slice(1,13).find(p=>maze.cell(p)!==cell);
+        const gate=next && exits.find(e=>e.id===maze.cell(next));
+        if (gate) gate.support+=f.weight;
+      }
+      // Count actual departures, including reversals through the same doorway.
+      for (let i=1;i<this.samples.length;i++) {
+        if (this.samples[i-1].there!==cell || this.samples[i].there===cell) continue;
+        const exit=exits.find(e=>e.id===this.samples[i].there);
+        if (exit) exit.support+=.23*(1-(game.time-this.samples[i].at)/18);
+      }
+      return exits.sort((a,b)=>b.support-a.support);
+    }
+
+    reload(game, foe) {
+      if ((foe.item && foe.item!=='shield') || game.count(foe.id)<5) return 0;
+      let first=Infinity;
+      for (const b of game.bullets) {
+        if (b.owner===foe.id && b.kind==='regular' && !b.gone) first=Math.min(first,b.life-b.age);
+      }
+      return this.traffic ? Math.min(first,this.traffic.release(foe.id,.42)) : first;
+    }
+
+    routes(game,me,foe,atlas,reload) {
+      const maze=game.maze, start=maze.cell(me);
+      const cost=new Float64Array(atlas.count).fill(Infinity);
+      const elapsed=new Float64Array(atlas.count);
+      const prev=new Int16Array(atlas.count).fill(-1);
+      const open=new Set([start]);
+      cost[start]=0;
+      while (open.size) {
+        let here=-1;
+        for (const id of open) if (here<0 || cost[id]<cost[here]) here=id;
+        open.delete(here);
+        if (cost[here]>=8) continue;
+        for (const next of maze.links[here]) {
+          const from=here===start ? me : atlas.centers[here], to=atlas.centers[next];
+          const midpoint={x:(from.x+to.x)/2,y:(from.y+to.y)/2};
+          if (game.mines.some(m=>m.armed && dist(m,midpoint)<1.1 && maze.visible(m,midpoint))) continue;
+          const exposed=maze.visible(foe,midpoint,SHOT);
+          const angle=Math.abs(angleDiff(bearing(foe,midpoint),foe.a));
+          const walk=dist(from,to)/2.02;
+          const eta=elapsed[here]+walk;
+          const exposure=exposed && reload<eta+.2 ? Math.max(0,1.45-angle)*1.6 : 0;
+          const traffic=this.traffic;
+          const crossing=traffic ? Math.max(traffic.risk(midpoint,eta-walk*.5),traffic.risk(to,eta)) : 0;
+          const distance=cost[here]+1+(exposure+crossing*1.15)*(me.item==='shield'?.5:1);
+          if (distance>=cost[next]) continue;
+          cost[next]=distance;
+          elapsed[next]=eta;
+          prev[next]=here;
+          open.add(next);
+        }
+      }
+      return {cost,prev,elapsed};
+    }
+
+    choosePost(game, me, foe, nav, reload, exits, staging) {
+      const atlas=nav.atlas, maze=game.maze, here=maze.cell(me);
+      const oldAngle=bearing(foe,me);
+      const paths=this.routes(game,me,foe,atlas,reload);
+      let best=null;
+      for (const cell of atlas.options(here,6)) {
+        if (cell===here || !maze.links[cell].some(n=>n!==maze.cell(foe)) || atlas.depth[cell]>1) continue;
+        const p=atlas.centers[cell], travel=paths.cost[cell], gap=dist(p,foe);
+        if (!Number.isFinite(travel)) continue;
+        if (gap<.82 || gap>5) continue;
+        if (game.mines.some(m=>m.armed && dist(m,p)<.92 && maze.visible(m,p))) continue;
+        const sight=maze.visible(p,foe,SHOT);
+        let gateAccess=0;
+        for (const e of exits.slice(0,2)) {
+          if (maze.visible(p,e.p,SHOT)) {
+            const arrival=Math.max(.20,dist(foe,e.p)/2.02);
+            const covered=this.traffic?.risk(e.p,arrival,.18,me.id) || 0;
+            gateAccess+=Math.min(1,e.support)*(1-.60*covered);
+          }
+        }
+        // With no round ready, wait one corner behind the firing line. The
+        // adjacent square must actually open onto an exit or the opponent.
+        let peek=null;
+        if (staging) {
+          if (sight || !maze.links[cell].some(n=>n!==here && atlas.depth[n]===0)) continue;
+          for (const id of maze.links[cell]) {
+            const opening=atlas.centers[id];
+            const canSee=maze.visible(opening,foe,SHOT) || exits.some(e=>
+              e.support>.22 && maze.visible(opening,e.p,SHOT));
+            if (canSee && !game.mines.some(m=>m.armed && dist(m,opening)<.92)) {
+              peek=opening;
+              break;
+            }
+          }
+          if (!peek) continue;
+        } else if (!sight && gateAccess<.25) continue;
+        const offAxis=Math.abs(angleDiff(bearing(foe,p),foe.a));
+        if (sight && offAxis<.55 && reload<paths.elapsed[cell]+.2 && me.item!=='shield') continue;
+        const cover=maze.links[cell].some(n=>!atlas.cellSight(n,maze.cell(foe)));
+        const novelty=clamp((game.time-nav.visits[cell])/8,0,1);
+        const rotation=Math.abs(angleDiff(bearing(foe,p),oldAngle));
+        const spent=(this.used.get(cell) ?? -100)>game.time-8;
+        const eta=paths.elapsed[cell];
+        const returnRisk=this.traffic ? this.traffic.risk(p,eta+.85,.38) : 0;
+        const score=1.1*gateAccess-returnRisk*1.1+.65*Number(sight)+.83*Math.min(1.9,rotation)+
+          .55*offAxis+.85*Number(cover)+novelty-1.6*Number(spent)-
+          .38*travel-.48*Math.abs(gap-1.7)-.7*atlas.depth[cell];
+        if (!best || best.score<score) best={cell,p,score,peek};
+      }
+      if (best) {
+        const cells=[];
+        for (let id=best.cell; id!==here; id=paths.prev[id]) cells.push(id);
+        best.route=[here,...cells.reverse()];
+      }
+      return best;
+    }
+
+    safeAdvance(game,me,target,field) {
+      // A shell crossing the current parking spot need not cross the approach.
+      // Test both legal drive directions with the current turn limit.
+      for (const drive of [1,-1]) {
+        const p=pose(me);
+        let exposed=false;
+        for (let i=0;i<6;i++) {
+          const before=pose(p);
+          const turn=angleDiff(bearing(p,target)+(drive<0?Math.PI:0),p.a);
+          advance(game,p,{drive,turn:clamp(turn/(TURN*H),-1,1)},H);
+          const risk=field.cost(before,p,i);
+          if (risk.danger>1.8 || risk.gun>1.15) { exposed=true; break; }
+        }
+        if (!exposed && dist(p,target)<dist(me,target)-.45) return true;
+      }
+      return false;
+    }
+
+    peekGoal(game,me,foe,nav,forecasts,field,visible,reload) {
+      const maze=game.maze;
+      const dangerous=(p)=>game.mines.some(m=>m.armed && dist(m,p)<.92 && maze.visible(m,p));
+      if (this.peek) {
+        const order=this.peek;
+        const angle=Math.abs(angleDiff(bearing(foe,order.out),foe.a));
+        const counter=(maze.visible(foe,order.out,SHOT) && angle<.55 && reload<.30) ||
+          (foe.item && foe.item!=='mine');
+        const spent=this.tap!==order.tap;
+        if (game.time>order.until || counter || spent) order.returning=true;
+        if (order.returning) {
+          if (game.time<order.until+1 && dist(me,order.cover)>.18 &&
+              !maze.visible(foe,order.cover,SHOT) && !dangerous(order.cover) &&
+              TankTactics.walkable(maze,me,order.cover)) {
+            return {type:'withdraw',p:order.cover,target:order.cover,watch:foe};
+          }
+          this.peek=null;
+          return null;
+        }
+        if (!dangerous(order.out) && TankTactics.walkable(maze,me,order.out)) {
+          return {type:'peek',p:order.out,target:order.out,watch:foe};
+        }
+        this.peek=null;
+      }
+      if (visible || game.time<this.nextPeek || game.time-this.lastDamage<28 ||
+          game.count(me.id)>3 || foe.item && foe.item!=='mine') return null;
+      this.nextPeek=game.time+.38;
+      const atlas=nav.atlas, cell=maze.cell(me);
+      const target=positionAt(forecasts[0].line,.50);
+      let best=null;
+      for (const n of atlas.options(cell,2)) {
+        const center=atlas.centers[n];
+        for (const fraction of [.55,1]) {
+          const out={x:me.x+(center.x-me.x)*fraction,y:me.y+(center.y-me.y)*fraction};
+          const travel=dist(me,out), range=dist(out,target);
+          if (travel<.24 || travel>1.45 || range<.70 || range>4.25 ||
+              !maze.visible(out,target,SHOT) || !TankTactics.walkable(maze,me,out) || dangerous(out)) continue;
+          const turn=Math.abs(angleDiff(bearing(out,target),me.a))/TURN;
+          const enemyTurn=Math.abs(angleDiff(bearing(foe,out),foe.a))/TURN;
+          const lead=Math.max(reload,enemyTurn)-turn;
+          if (lead < (me.item==='shield' ? .10 : .30)+travel*.13) continue;
+          const p=pose(me);
+          const reverse=Math.abs(angleDiff(bearing(p,out),p.a))>Math.PI/2;
+          let unsafe=false;
+          for (let i=0;i<8 && dist(p,out)>.13;i++) {
+            const before=pose(p);
+            const delta=angleDiff(bearing(p,out)+(reverse?Math.PI:0),p.a);
+            advance(game,p,{drive:reverse?-1:1,turn:clamp(delta/(TURN*H),-1,1)},H);
+            const risk=field.cost(before,p,i);
+            if (risk.danger>2 || risk.gun>1) { unsafe=true; break; }
+          }
+          if (unsafe || dist(p,out)>.20) continue;
+          const score=Math.min(1.4,lead)-travel*.43-range*.22;
+          if (!best || score>best.score) best={out,travel,score};
+        }
+      }
+      if (!best) return null;
+      this.peek={out:best.out,cover:pose(me),tap:this.tap,
+        until:game.time+.45+best.travel/2.02,returning:false};
+      this.nextPeek=this.peek.until+1.1;
+      return {type:'peek',p:best.out,target:best.out,watch:target};
+    }
+
+    waitForCrossing(game,me,foe,forecasts,field) {
+      if (this.ambush) {
+        const a=this.ambush;
+        if (a.until>game.time && a.tap===this.tap && dist(me,a.p)<.32 &&
+            !field.incoming() && !game.maze.visible(me,foe,SHOT)) return a;
+        this.ambush=null;
+      }
+      if (game.time<this.nextAmbush || field.incoming()) return null;
+      this.nextAmbush=game.time+.36;
+      const gates=new Map(), maze=game.maze;
+      for(const f of forecasts) {
+        // The opponent must actually step into a shootable lane while we
+        // can turn in cover. Merely predicting an adjacent room is insufficient.
+        for (let j=2;j<Math.min(11,f.line.length);j++) {
+          const p=f.line[j],arrival=j*H;
+          if (!maze.visible(me,p,SHOT)) continue;
+          const range=dist(me,p),turn=Math.abs(angleDiff(bearing(me,p),me.a))/TURN;
+          if (range<.75 || range>3.6 || turn+range/SPEED>arrival+.15 ||
+              (this.traffic?.risk(p,arrival,.13,me.id)||0)>.64) continue;
+          const key=maze.cell(p), before=gates.get(key);
+          if(before) before.weight+=f.weight;
+          else gates.set(key,{p,arrival,weight:f.weight});
+          break;
+        }
+      }
+      let gate;
+      for(const g of gates.values()) if(g.weight>.30 && (!gate || g.weight>gate.weight)) gate=g;
+      if (!gate || (this.traffic?.risk(me,gate.arrival*.5,.25)||0)>.45 ||
+          (this.traffic?.risk(me,gate.arrival,.25)||0)>.45) return null;
+      this.nextAmbush=game.time+2.3;
+      this.ambush={type:'intercept',p:pose(me),target:gate.p,watch:gate.p,tap:this.tap,
+        until:game.time+Math.min(.78,gate.arrival)};
+      return this.ambush;
+    }
+
+    goal(game, me, foe, normal, nav, shot, forecasts, field) {
+      if (!this.active || !foe.alive || !forecasts.length) { this.peek=null; return normal; }
+      const ammo=5-game.count(me.id), armed=me.item && me.item!=='shield';
+      const hazard=foe.item==='laser' || foe.rapid || field.missiles.seeds.length ||
+        game.mines.some(m=>m.armed && dist(me,m)<1.05);
+      if (hazard || normal.type==='pickup' ||
+          (!this.peek && shot?.kill>.70 && shot.impact<.58)) {
+        this.order=null;
+        this.peek=null;
+        return normal;
+      }
+      const maze=game.maze, there=maze.cell(foe);
+      const gap=dist(me,foe), visible=maze.visible(me,foe,SHOT);
+      const exposed=Math.abs(angleDiff(bearing(foe,me),foe.a));
+      const reload=this.reload(game,foe);
+      if (this.cyclingAmmo && !visible && ammo>=1 && !armed && !this.peek) {
+        const ambush=this.waitForCrossing(game,me,foe,forecasts,field);
+        if (ambush) { this.order=null; return ambush; }
+      }
+      if (me.item!=='mine' && !foe.rapid && (this.peek || ammo>=2)) {
+        const peek=this.peekGoal(game,me,foe,nav,forecasts,field,visible,reload);
+        if (peek) { this.order=null; return peek; }
+      }
+      const ourTurn=Math.abs(angleDiff(bearing(me,foe),me.a))/TURN;
+      const theirTurn=exposed/TURN;
+      const headStart=Math.max(reload,theirTurn) - ourTurn;
+      const pressureTime=Math.max(0,gap-1.0)/2.02;
+      const advantage=headStart > .16+pressureTime*.48 ||
+        (me.item==='shield' && headStart>.03 && gap<2.9);
+      const p=positionAt(forecasts[0].line,.34);
+      const coveredGate=this.traffic && visible && gap<3.5 && ammo>=2 &&
+        forecasts.slice(0,3).some(f=>{
+          const j=f.line.slice(0,13).findIndex(s=>maze.cell(s)!==there);
+          return j>1 && f.weight>.15 && this.traffic.risk(f.line[j],j*H,.13,me.id)>.66;
+        });
+      const escapeClear=coveredGate && maze.links[maze.cell(me)].some(id=>{
+        const cover=maze.center(id), eta=dist(me,cover)/2.02;
+        return !maze.visible(foe,cover,SHOT) && TankTactics.walkable(maze,me,cover) &&
+          !game.mines.some(m=>m.armed && dist(m,cover)<.90 && maze.visible(m,cover)) &&
+          this.traffic.risk(cover,eta,.22)<.28;
+      });
+      const forcedTurn=game.time-this.lastDamage>24 && gap<3.25 && exposed>1.02 &&
+        ourTurn<.34 && forecasts.some(f=>f.weight>.20 && f.coverage>.68);
+      if (visible && gap<4 && gap>.85 && (ammo>=2 || me.item==='triple') && !foe.item &&
+          (advantage || forcedTurn || (coveredGate && escapeClear && exposed>1.1)) && (!field.incoming() || this.safeAdvance(game,me,p,field))) {
+        const route=routeInfo(maze,me,p,game.mines.filter(m=>m.armed));
+        this.order=null;
+        return {type:'close',p:route.next,target:p, watch:p};
+      }
+      if (gap<1.55 && visible) return normal;
+      const slotSoon=this.traffic?.release(me.id,.78)<1.7 || game.bullets.some(b=>b.owner===me.id && b.kind==='regular' && b.life-b.age<1.7);
+      const staging=!armed && ammo<=1 && !visible && (slotSoon || (this.cyclingAmmo && (ammo>0 || this.traffic?.release(me.id,.78)<3)));
+      if (!armed && !ammo && !staging) return normal;
+      if (staging && field.incoming()) { this.order=null; return normal; }
+      if (this.order && (game.time>this.order.until || staging!==this.order.staging ||
+          (!staging && dist(me,this.order.p)<.28) ||
+          nav.atlas.range(this.order.foeCell,there)>2)) this.order=null;
+      if (!this.order && game.time>=this.nextOrder) {
+        this.nextOrder=game.time+.65;
+        const best=this.choosePost(game,me,foe,nav,reload,this.exits(game,foe,forecasts),staging);
+        if (best && best.score>1.0) {
+          const eta=nav.atlas.eta(me,best.p);
+          this.order={...best,staging,foeCell:there,until:game.time+clamp(eta+.55,.85,3.2)};
+          this.used.set(best.cell,game.time);
+        }
+      }
+      if (!this.order) return normal;
+      const index=this.order.route.indexOf(maze.cell(me));
+      if (index<0) { this.order=null; return normal; }
+      const centers=nav.atlas.centers;
+      const nextCell=this.order.route[index+1] ?? this.order.cell;
+      const next=TankTactics.walkable(maze,me,centers[nextCell]) ? centers[nextCell] : centers[this.order.route[index]];
+      const eta=dist(me,next)/2.02;
+      const inSight=maze.visible(foe,next,SHOT);
+      const canAim=Math.abs(angleDiff(bearing(foe,next),foe.a))/TURN < Math.min(.32,eta+.04);
+      if ((inSight && canAim && reload<eta+.16 && me.item!=='shield') ||
+          game.mines.some(m=>m.armed && dist(m,next)<.85 && maze.visible(m,next))) {
+        this.order=null;
+        return normal;
+      }
+      const look=positionAt(forecasts[0].line,.48);
+      const watch=this.order.peek || (maze.visible(this.order.p,look,SHOT) && dist(me,this.order.p)<1.9 ? look : null);
+      return {type:staging?'stage':'rotate',p:next,target:this.order.p,watch};
+    }
+
+    seal(game,me,foe,forecasts,gun,direct) {
+      if (!this.active || !foe.alive || !forecasts.length || (me.item && me.item!=='shield') ||
+          game.count(me.id)>3 || direct?.kill>.80 || direct?.followup || game.time<this.nextSeal) return direct;
+      this.nextSeal=game.time+.19;
+      const maze=game.maze, originCell=maze.cell(foe);
+      const ownShells=game.bullets.filter(b=>b.owner===me.id &&
+        ['regular','triple','rapid','fragment'].includes(b.kind)).map(b=>{
+        const life=Math.min(1.55,b.life-b.age);
+        const path=TankTactics.flight(maze,b,Math.atan2(b.dy,b.dx),life*b.speed,SHOT,6,b.kind==='fragment');
+        return {path,life,speed:b.speed};
+      });
+      let best=direct;
+      for (const exit of this.exits(game,foe,forecasts).slice(0,2)) {
+        if (exit.support<.22 || dist(me,exit.p)>5.6) continue;
+        const uncovered=[];
+        for (const f of forecasts) {
+          const j=f.line.findIndex(p=>maze.cell(p)!==originCell);
+          if (j<1 || j>12 || maze.cell(f.line[j])!==exit.id) continue;
+          const covered=ownShells.some(s=>Number.isFinite(crossing(f.line,s.path,s.speed,s.life,0).contact));
+          if (!covered) uncovered.push({f,j});
+        }
+        const mass=uncovered.reduce((v,r)=>v+r.f.weight,0);
+        if (mass<.14) continue;
+        const lead=uncovered[0];
+        if ((this.traffic?.risk(lead.f.line[lead.j],lead.j*H,.09,me.id)||0)>.76) continue;
+        const target=lead.f.line[lead.j];
+        const proposed=[bearing(me,target),me.a];
+        for (const s of (gun.finalists || [])) {
+          if (s.banks && s.kill>.18 && s.selfTime>.55) proposed.push(s.a);
+          if (proposed.length>=7) break;
+        }
+        for (const a of new Set(proposed)) {
+          const delay=Math.abs(angleDiff(a,me.a))/TURN;
+          if (delay>.43) continue;
+          const shot=gun.lane(game,me,forecasts,a,null);
+          let gateHits=0, first=Infinity;
+          for (const {f,j} of uncovered) {
+            const hit=crossing(f.line,shot.path,SPEED,1.48,delay).contact;
+            if (!Number.isFinite(hit) || hit+.20>=shot.selfTime || Math.abs(hit+delay-j*H)>.40) continue;
+            gateHits+=f.weight;
+            first=Math.min(first,hit);
+          }
+          if (gateHits<.13 || shot.value<.22) continue;
+          const value=shot.value+.43*gateHits+Math.min(.13,exit.support*.14);
+          const rank=value-delay*.36;
+          if (!best || rank>best.rank+.025) {
+            best={...shot,impact:first,a,weapon:null,value,rank,viable:true,seal:true};
+          }
+        }
+      }
+      if (best?.seal) this.nextSeal=game.time+.045;
+      return best;
+    }
+
+    conserve(game,me,foe,shot) {
+      if (!this.active || me.item && me.item!=='shield') return false;
+      const used=game.count(me.id);
+      if (used<3 || dist(me,foe)<1.35 || (shot.kill>.75 && shot.impact<.8)) return false;
+      // Firing on exactly the same long lane as a shell still leaving the
+      // muzzle rarely buys a second exit. Spend the slot when the line changes.
+      if (used>=3 && shot.impact>.70 && !shot.seal && !shot.followup && foe.item!=='shield' &&
+          game.bullets.some(b=>b.owner===me.id && b.kind==='regular' && b.age<.46 &&
+            Math.abs(angleDiff(Math.atan2(b.dy,b.dx),shot.a))<.085 && dist(b,me)<1.65)) return true;
+      const soon=this.traffic?.release(me.id,.78)<.7 || game.bullets.some(b=>b.owner===me.id && b.kind==='regular' && b.life-b.age<.70);
+      if (shot.audit?.trapped && shot.impact<1.10) return false;
+      const blind=!game.maze.visible(me,foe,SHOT);
+      if (this.cyclingAmmo && blind && !shot.seal && !shot.followup &&
+          !(shot.kill>.78 && shot.impact<1.25)) {
+        // One expiring shell is not a replenished magazine. A second
+        // recovery buys room to keep firing when the opponent reaches the exit.
+        const recovering=game.bullets.filter(b=>b.owner===me.id && b.kind==='regular' &&
+          !b.gone && b.life-b.age<1.45).length;
+        if (used===4 && recovering<2 || used===3 && !recovering && shot.kill<.64) return true;
+      }
+      if (soon) return false;
+      return used===4 ? (shot.kill<.82 || shot.impact>1.10) :
+        blind && (shot.kill<.56 || shot.impact>1.25);
+    }
+  }
+  global.TankDuelPlanner=DuelPlanner;
+})(globalThis);
+
+</script>
+<script>
+/* Static walls make the no-impact path of a regular round reusable for its
+   entire lifetime. Passage times are absolute arena seconds. Observed hits
+   delete a track; possible future hits only reduce its confidence. */
+(function(global) {
+  'use strict';
+  const { BODY, SHOT, STEP, clamp, dist } = TankArena;
+  const { H, positionAt } = TankTactics;
+  const clearance = BODY + SHOT + .08;
+
+  // Intersect a directed leg with one cell expanded by the vehicle radius.
+  function axisRange(p,d,lo,hi) {
+    if (Math.abs(d)<1e-12) return p>=lo && p<=hi ? [-Infinity,Infinity] : null;
+    const a=(lo-p)/d, b=(hi-p)/d;
+    return d>0 ? [a,b] : [b,a];
+  }
+
+  class ShellTraffic {
+    constructor(maze) {
+      this.maze=maze;
+      this.tracks=new Map();
+      this.cells=maze.links.map(()=>[]);
+      this.now=0;
+      this.nextEstimate=0;
+    }
+
+    index(track,leg) {
+      const m=this.maze;
+      const x1=leg.x+leg.dx*leg.length, y1=leg.y+leg.dy*leg.length;
+      const left=clamp(Math.floor(Math.min(leg.x,x1)-clearance),0,m.cols-1);
+      const right=clamp(Math.floor(Math.max(leg.x,x1)+clearance),0,m.cols-1);
+      const top=clamp(Math.floor(Math.min(leg.y,y1)-clearance),0,m.rows-1);
+      const bottom=clamp(Math.floor(Math.max(leg.y,y1)+clearance),0,m.rows-1);
+      for(let x=left;x<=right;x++) {
+        const u=axisRange(leg.x,leg.dx,x-clearance,x+1+clearance);
+        if (!u) continue;
+        for(let y=top;y<=bottom;y++) {
+          const v=axisRange(leg.y,leg.dy,y-clearance,y+1+clearance);
+          if (!v) continue;
+          const lo=Math.max(0,u[0],v[0]), hi=Math.min(leg.length,u[1],v[1]);
+          if (hi<lo) continue;
+          const cell=y*m.cols+x;
+          this.cells[cell].push({track,leg,enter:leg.at+lo/track.speed,leave:leg.at+hi/track.speed});
+          track.touched.add(cell);
+        }
+      }
+    }
+
+    extend(t) {
+      const remaining=(t.motionUntil-t.end)*t.speed;
+      const wall=this.maze.cast(t.x,t.y,t.dx,t.dy,remaining,SHOT);
+      const length=wall ? wall.d : remaining;
+      const leg={at:t.end,x:t.x,y:t.y,dx:t.dx,dy:t.dy,length};
+      this.index(t,leg);
+      t.end=wall ? t.end+length/t.speed : t.motionUntil;
+      if (wall) {
+        t.selfFrom=Math.min(t.selfFrom,t.end);
+        t.x+=t.dx*length+wall.nx*.00001;
+        t.y+=t.dy*length+wall.ny*.00001;
+        if(wall.nx) t.dx=-t.dx;
+        if(wall.ny) t.dy=-t.dy;
+      }
+    }
+
+    update(game,me,foe,forecasts,previousPlan,planAge=0) {
+      this.now=game.time;
+      this.plannerId=me.id;
+      const current=new Set(game.bullets.filter(b=>!b.gone && b.kind==='regular'));
+      for(const [bullet,track] of this.tracks) if(!current.has(bullet)) {
+        for(const cell of track.touched) this.cells[cell]=this.cells[cell].filter(v=>v.track!==track);
+        this.tracks.delete(bullet);
+      }
+      const fresh=this.tracks.size===0 && current.size>0;
+      for(const b of current) if(!this.tracks.has(b)) {
+        this.tracks.set(b,{owner:b.owner,speed:b.speed,x:b.x,y:b.y,dx:b.dx,dy:b.dy,
+          until:game.time+b.life-b.age,
+          motionUntil:game.time+Math.max(0,Math.ceil((b.life-b.age)/STEP)-1)*STEP,
+          end:game.time,arrivals:[[],[]],touched:new Set(),
+          selfFrom:b.armed ? game.time : game.time+STEP+Math.max(0,BODY+SHOT+.002-dist(b,game.tanks[b.owner]))/(b.speed-2.02)});
+      }
+      // Extend the shortest known prefix first. One operation costs one wall
+      // cast. Queued tails resume next decision even in narrow corridors.
+      const budget=game.bullets.length>18 ? 12 : 28;
+      for(let i=0;i<budget;i++) {
+        let next;
+        for(const t of this.tracks.values()) if(t.motionUntil-t.end>1e-7 && (!next || t.end<next.end)) next=t;
+        if(!next) break;
+        this.extend(next);
+      }
+      if(fresh || this.now>=this.nextEstimate) {
+        this.nextEstimate=this.now+(game.bullets.length>18 ? .36 : .24);
+        this.estimateHits(me,foe,forecasts,previousPlan,planAge);
+      }
+    }
+
+    estimateHits(me,foe,forecasts,plan,planAge) {
+      for(const t of this.tracks.values()) t.arrivals=[[],[]];
+      if(!this.tracks.size) return;
+      const paths=[];
+      if (me.alive && plan?.length) {
+        const line=[me];
+        // The first saved pose was one search step after the last decision.
+        for (let i=1; i*H+planAge<=plan.length*H+1e-8; i++) {
+          line.push(positionAt(plan,(i-1)*H+planAge));
+        }
+        paths.push({id:me.id,line,weight:.52});
+      }
+      if (foe.alive) for (const f of forecasts.slice(0,3)) paths.push({id:foe.id,line:f.line,weight:f.weight});
+
+      for (const path of paths) {
+        const seen=new Set();
+        for(let i=1;i<Math.min(13,path.line.length);i++) {
+          const p=path.line[i-1], q=path.line[i];
+          const start=this.now+(i-1)*H;
+          // Short steps can straddle a grid boundary. Either end's bucket
+          // includes legs passing within the contact radius of that boundary.
+          const cellA=this.maze.cell(p), cellB=this.maze.cell(q);
+          for(const cell of cellA===cellB ? [cellA] : [cellA,cellB]) {
+            for(const w of this.cells[cell]) {
+              const t=w.track;
+              if(seen.has(t) || w.leave<start || w.enter>start+H) continue;
+              const lo=Math.max(w.enter,start), hi=Math.min(w.leave,start+H);
+              const leg=w.leg;
+              const bx=leg.x+leg.dx*(lo-leg.at)*t.speed, by=leg.y+leg.dy*(lo-leg.at)*t.speed;
+              const vx=(q.x-p.x)/H, vy=(q.y-p.y)/H;
+              const x=p.x+vx*(lo-start)-bx, y=p.y+vy*(lo-start)-by;
+              const dx=vx-leg.dx*t.speed, dy=vy-leg.dy*t.speed;
+              const dt=clamp(-(x*dx+y*dy)/(dx*dx+dy*dy || 1),0,hi-lo);
+              const when=lo+dt;
+              if(t.owner===path.id && when<t.selfFrom) continue;
+              if(Math.hypot(x+dx*dt,y+dy*dt)>BODY+SHOT) continue;
+              seen.add(t);
+              t.arrivals[path.id].push({at:when,mass:path.weight});
+            }
+          }
+        }
+      }
+      for(const t of this.tracks.values()) for (const events of t.arrivals) events.sort((a,b)=>a.at-b.at);
+    }
+
+    // Margin in seconds represents uncertainty in arrival at the waypoint.
+    risk(point,eta,slack=.18,owner=null) {
+      const at=this.now+eta;
+      let worst=0;
+      for(const w of this.cells[this.maze.cell(point)]) {
+        if(w.leave<at-slack || w.enter>at+slack || (owner!==null && w.track.owner!==owner)) continue;
+        const {track:t,leg}=w;
+        const lo=Math.max(w.enter,at-slack), hi=Math.min(w.leave,at+slack);
+        const along=(point.x-leg.x)*leg.dx+(point.y-leg.y)*leg.dy;
+        const when=clamp(leg.at+along/t.speed,lo,hi);
+        const length=(when-leg.at)*t.speed;
+        const gap=Math.hypot(point.x-leg.x-leg.dx*length,point.y-leg.y-leg.dy*length);
+        if (t.owner===this.plannerId && when<t.selfFrom && owner===null) continue;
+        let absorbed=0;
+        // When considering an alternative path for our tank, only the other
+        // tank's predicted contact can remove a shell from that alternative.
+        for(const hit of t.arrivals[owner===null ? 1-this.plannerId : this.plannerId]) {
+          if(hit.at>=this.now && hit.at+.06<when) absorbed+=hit.mass;
+        }
+        const confidence=1-.85*Math.min(1,absorbed);
+        const proximity=clamp((clearance-gap)/.13,0,1);
+        worst=Math.max(worst,proximity*confidence*(1-.30*Math.abs(when-at)/slack));
+      }
+      return worst/(1+.10*eta);
+    }
+
+    release(owner,minimumConfidence) {
+      let first=Infinity;
+      for(const t of this.tracks.values()) if(t.owner===owner) {
+        let end=t.until;
+        for(const hits of t.arrivals) {
+          let mass=0;
+          for(const h of hits) if(h.at>=this.now) {
+            mass+=h.mass;
+            if(mass>=minimumConfidence) { end=Math.min(end,h.at); break; }
+          }
+        }
+        first=Math.min(first,Math.max(0,end-this.now));
+      }
+      return first;
+    }
+  }
+  global.TankShellTraffic=ShellTraffic;
 })(globalThis);
 
 </script>
@@ -3337,6 +4148,7 @@ body.mobile .scoreboard{height:54px}body.mobile .portrait{height:36px;width:38px
       this.counterplay = new TankCounterplay();
       this.engagement = new TankEngagement();
       this.salvo = new TankSalvoPlanner();
+      this.duel = new TankDuelPlanner();
       this.nextThink = 0;
       this.lastWorld = null;
       this.plan = { drive: 0, turn: 0 };
@@ -3378,21 +4190,29 @@ body.mobile .scoreboard{height:54px}body.mobile .portrait{height:36px;width:38px
       if (!this.scene || this.scene.source !== game.maze) {
         this.scene = new TankPlanningScene(game);
         this.navigation = new TankPositionPlanner(this.scene.world.maze);
+        this.traffic = new TankShellTraffic(this.scene.world.maze);
+        this.navigation.traffic = this.duel.traffic = this.traffic;
       }
       game = this.scene.world;
       this.forecasts = foe.alive ? this.model.predict(game, foe, input, me) : [];
       this.shadow.addForecasts(game, me, foe, input, this.forecasts);
+      const visible = this.engagement.observe(game, me, foe, this.weapons);
+      this.duel.observe(game,me,foe,visible,input,this.weapons.lastTap);
+      this.duel.recall(game,foe,this.forecasts);
+      this.traffic.update(game,me,foe,this.forecasts,this.movement.line,game.time-(this.lastWorld?.time ?? game.time));
       this.attack = this.weapons.aim(game, me, foe, this.forecasts);
       this.attack = this.counterplay.refine(game, me, foe, input, this.forecasts,
         this.weapons.finalists || [], this.attack);
       this.attack = this.salvo.select(game, me, foe, this.forecasts, this.weapons, this.attack);
+      this.attack = this.duel.seal(game,me,foe,this.forecasts,this.weapons,this.attack);
       const normal = this.navigation.select(game, me, foe, this.forecasts, this.attack);
-      const visible = this.engagement.observe(game, me, foe, this.weapons);
-      const goal = this.engagement.objective(game, me, foe, this.navigation, normal,
+      const usual = this.engagement.objective(game, me, foe, this.navigation, normal,
         this.forecasts, this.attack, visible);
       const guided = game.bullets.some(b => b.kind === 'seeker' && dist(me,b) < 6.8);
       const field = new TankThreatField(game, me, foe, input, this.forecasts, guided ? 16 : 12);
+      field.alternateMissileTarget=field.missiles.alternative(this.forecasts);
       field.beams = this.weapons.ordnance.beamPaths(game, foe, this.forecasts[0]?.line, input);
+      const goal = this.duel.goal(game,me,foe,usual,this.navigation,this.attack,this.forecasts,field);
       const window = new TankAttackWindow(game, me, foe, this.forecasts);
       this.plan = this.movement.search(game, me, foe, goal, this.attack, field, window);
       this.intent = goal.type;
@@ -3414,7 +4234,7 @@ body.mobile .scoreboard{height:54px}body.mobile .portrait{height:36px;width:38px
       cmd.drive = motion.drive;
       cmd.turn = motion.turn;
       const policy = this.engagement.firePolicy(game, me, foe, this.attack);
-      this.weapons.trigger(this.scene.world, me, foe, dt, cmd, this.attack, this.forecasts, policy, input);
+      this.weapons.trigger(this.scene.world, me, foe, dt, cmd, this.attack, this.forecasts, policy, input, this.duel);
       this.salvo.notify(game, this.weapons, this.attack);
       return cmd;
     }
@@ -3505,17 +4325,17 @@ body.mobile .scoreboard{height:54px}body.mobile .portrait{height:36px;width:38px
       for(const e of g.effects){
         if(e.type!=='smoke')continue;
         const f=1-e.life/e.total,x=e.x+e.jitter*f,y=e.y-.06*f;
-        c.save();c.globalAlpha=(1-f)*.48;
+        c.save();c.globalAlpha=(1-f)*(e.small?.48:.78);
         const radius=(e.small?.018:.032)+f*(e.small?.038:.088);
-        circle(c,x,y,radius,'#60626a');
-        if(e.target!=null)circle(c,x,y,radius*.76,colors[e.target]);
+        circle(c,x,y,radius,e.small?'#60626a':'#42444a');
+        if(e.target!=null)circle(c,x,y,radius*.88,colors[e.target]);
         c.restore();
       }
       for(const t of g.tanks)if(t.alive&&t.item==='laser'){
         beam(c,g.laserPath(t,3.6,true),colors[t.id],true);
       }
       for(const b of g.bullets){
-        if(b.kind==='seeker'){missile(c,b.x,b.y,Math.atan2(b.dy,b.dx),1,colors[b.targetId]||'#b2b4b7');continue;}
+        if(b.kind==='seeker'){missile(c,b.x,b.y,Math.atan2(b.dy,b.dx),1,colors[b.owner]);continue;}
         if(b.kind==='fragment'){
           c.save();c.translate(b.x,b.y);c.rotate(Math.atan2(b.dy,b.dx)+b.age*b.spin);
           c.beginPath();c.moveTo(.062,0);c.lineTo(-.038,-.023);c.lineTo(-.017,.026);
@@ -3556,8 +4376,156 @@ body.mobile .scoreboard{height:54px}body.mobile .portrait{height:36px;width:38px
 
 </script>
 <script>
+/* Embedded by build-release.cjs. Version checks never drive the simulation. */
+(function () {
+  'use strict';
+  const current = {"version":"1.1.0","date":"2026-11-15","title":"困难档策略升级与追踪弹修正","notes":["困难档增加长期反弹弹道判断，按到达路口的时间选择换位、逼近和掩体探头。","隔墙对峙时判断已有炮弹是否能封住出口，保留弹槽并寻找另一条进攻路线。","追踪弹出膛后直飞 2 秒，碰墙正常反弹，随后追踪最近的存活坦克。","导弹弹体保持发射坦克颜色；起追前尾烟深灰，起追后新尾烟随目标变色。","新增版本号和更新公告；发现新版后在本局结算完成时提示，玩家自行决定刷新。"],"build":"db89d4cf851835e4"};
+  let hooks, latest = null, checking = false, refreshing = false, prompted = '', error = '';
+  const notice = document.createElement('aside');
+  notice.id = 'release-notice';
+  notice.hidden = true;
+  const status = document.createElement('span');
+  status.setAttribute('role','status');
+  const refreshButton = document.createElement('button');
+  refreshButton.type = 'button';
+  refreshButton.className = 'tool';
+  notice.append(status,refreshButton);
+  document.querySelector('.stage').append(notice);
+  const versionButton = document.createElement('button');
+  versionButton.id = 'release-version';
+  versionButton.className = 'tool';
+  versionButton.textContent = 'v' + current.version;
+  versionButton.setAttribute('aria-label','v' + current.version + ' 更新公告');
+  document.querySelector('nav').prepend(versionButton);
+
+  function newer(a,b) {
+    const x=a.split('.').map(Number), y=b.split('.').map(Number);
+    for (let i=0;i<3;i++) if (x[i]!==y[i]) return x[i]>y[i];
+    return false;
+  }
+  function valid(data) {
+    return data && /^\d+\.\d+\.\d+$/.test(data.version) &&
+      /^[a-f0-9]{16}$/.test(data.build) && Array.isArray(data.notes) &&
+      data.notes.length<=30 && data.notes.every(n=>typeof n==='string' && n.length<=1500);
+  }
+  function urlFor(file,build) {
+    const url = new URL(file,location.href);
+    url.searchParams.set('release',build);
+    return url;
+  }
+  async function fetchText(url) {
+    const response=await fetch(url,{cache:'no-store',signal:AbortSignal.timeout(8000)});
+    if (!response.ok) throw Error('暂时无法获取新版');
+    return response.text();
+  }
+  async function ready(data) {
+    const html=await fetchText(urlFor('index.html',data.build));
+    const page=new DOMParser().parseFromString(html,'text/html');
+    return page.querySelector('meta[name="tank-build"]')?.content===data.build;
+  }
+  function render() {
+    notice.hidden=!latest;
+    const inRound=hooks?.inRound() ?? false;
+    const message=latest ? error || '发现新版 v'+latest.version+
+      (inRound?'，本局结束后可刷新更新。':'，可刷新更新。') : '';
+    status.textContent=message;
+    for (const row of document.querySelectorAll('.release-update')) {
+      row.hidden=!latest;
+      row.querySelector('span').textContent=message;
+    }
+    const buttons=[refreshButton,...document.querySelectorAll('.release-refresh')];
+    for (const button of buttons) {
+      button.textContent=refreshing?'检查新版中…':inRound?'本局结束后更新':'刷新更新';
+      button.disabled=!latest || inRound || refreshing;
+    }
+  }
+  function appendNotes(parent) {
+    const details=document.createElement('details');
+    details.className='release-notes';
+    const summary=document.createElement('summary');
+    summary.textContent='v'+current.version+' · 更新公告';
+    const date=document.createElement('p');
+    date.textContent=current.date+' · '+current.title;
+    const notes=document.createElement('ul');
+    for(const note of current.notes) {
+      const li=document.createElement('li');
+      li.textContent=note;
+      notes.append(li);
+    }
+    details.append(summary,date,notes);
+    const update=document.createElement('div');
+    update.className='release-update stack';
+    update.hidden=!latest;
+    const message=document.createElement('span');
+    const button=document.createElement('button');
+    button.className='action release-refresh';
+    button.type='button';
+    button.onclick=refresh;
+    update.append(message,button);
+    parent.append(details,update);
+    render();
+  }
+  async function check() {
+    if (checking || !hooks || !/^https?:$/.test(location.protocol)) return;
+    checking=true;
+    try {
+      const text=await fetchText(urlFor('version.json',String(Date.now())));
+      const data=JSON.parse(text);
+      if (valid(data) && newer(data.version,current.version) &&
+          (!latest || newer(data.version,latest.version)) && await ready(data)) {
+        latest=data;
+        render();
+      }
+    } catch { /* Keep the running game usable while offline or mid-deployment. */ }
+    finally { checking=false; }
+  }
+  async function refresh() {
+    if (!latest || refreshing || hooks.inRound()) return;
+    refreshing=true;
+    error='';
+    render();
+    try {
+      const target=latest;
+      if (!await ready(target)) throw Error('新版仍在部署，请稍后重试。');
+      // Recheck after awaiting the network: the player may have started a round.
+      if (hooks.inRound()) return;
+      hooks.save();
+      location.replace(urlFor('index.html',target.build).href);
+    } catch {
+      error='暂时无法加载新版，可继续当前版本，稍后再试。';
+    } finally {
+      refreshing=false;
+      render();
+    }
+  }
+  refreshButton.onclick=refresh;
+  versionButton.onclick=()=>{
+    hooks?.openNotes();
+  };
+  window.TankRelease={
+    current,
+    connect(callbacks) {
+      hooks=callbacks;
+      void check();
+    },
+    appendNotes,
+    refresh,
+    sync:render,
+    roundEnded() {
+      render();
+      if (!latest || prompted===latest.build) return;
+      prompted=latest.build;
+      hooks.prompt(latest);
+    }
+  };
+  setInterval(()=>{if(!document.hidden)void check();},60000);
+  document.addEventListener('visibilitychange',()=>{if(!document.hidden)void check();});
+  window.addEventListener('online',()=>void check());
+})();
+
 (()=>{
   'use strict';
+  const release=window.TankRelease;
   const {Game,STEP,ITEMS,idle,angleDiff,clamp}=TankArena;
   const $=id=>document.getElementById(id),panel=$('panel'),panelBody=$('panel-body');
   const renderer=new TankArt.Renderer($('board'),$('field'));
@@ -3587,6 +4555,7 @@ body.mobile .scoreboard{height:54px}body.mobile .portrait{height:36px;width:38px
     running=false;dirty=true;resetInput();panelBody.replaceChildren();
     const h=document.createElement('h1');h.id='panel-title';h.textContent=title;panelBody.append(h);
     if(info){const p=document.createElement('p');p.textContent=info;panelBody.append(p);}
+    release.appendNotes(panelBody);
     if(!panel.open)panel.showModal();panel.scrollTop=0;
   }
   function group(cls){const d=document.createElement('div');d.className=cls;panelBody.append(d);return d;}
@@ -3638,7 +4607,7 @@ body.mobile .scoreboard{height:54px}body.mobile .portrait{height:36px;width:38px
     },'action primary'),action('← 返回',modeScreen,'back'));
   }
   function play(){
-    view='play';panel.close();last=0;debt=0;running=true;resetInput();$('board').focus();
+    view='play';panel.close();last=0;debt=0;running=true;resetInput();$('board').focus();release.sync();
   }
   function start(which){
     mode=which;active=true;ending=0;names=['玩家 1',mode==='duel'?'玩家 2':'GPT'];
@@ -3648,7 +4617,7 @@ body.mobile .scoreboard{height:54px}body.mobile .portrait{height:36px;width:38px
   }
   function exitMatch(){
     save();active=false;running=false;ending=0;$('touch-controls').hidden=true;document.body.classList.remove('mobile');
-    $('mode-label').textContent='迷宫对决';deviceScreen();sync();
+    $('mode-label').textContent='迷宫对决';deviceScreen();sync();release.sync();
   }
   function pause(){
     if(!active)return;view='pause';section('对战暂停',names[0]+'　'+game.score[0]+' ∶ '+game.score[1]+'　'+names[1]);
@@ -3730,11 +4699,11 @@ body.mobile .scoreboard{height:54px}body.mobile .portrait{height:36px;width:38px
       const elapsed=last?Math.min(.1,(now-last)/1000):0;last=now;
       if(ending){
         ending=Math.max(0,ending-elapsed);
-        if(!ending){game.newRound();resetInput();debt=0;}
+        if(!ending){game.newRound();resetInput();debt=0;release.sync();}
       }else{
         debt+=elapsed;while(debt>=STEP){
           controls();const result=game.step(STEP,inputs);debt-=STEP;
-          if(result){ending=.12;save();break;}
+          if(result){ending=.12;save();release.roundEnded();break;}
         }
       }
       sync();
@@ -3747,6 +4716,32 @@ body.mobile .scoreboard{height:54px}body.mobile .portrait{height:36px;width:38px
   window.addEventListener('pagehide',save);
   document.querySelectorAll('.portrait').forEach((c,i)=>TankArt.drawPortrait(c,i));
   for(const i of [0,1])for(let j=0;j<5;j++)$('ammo'+i).append(document.createElement('i'));
+
+  release.connect({
+    inRound:()=>active && !game.result,
+    save,
+    openNotes() {
+      if (running) pause();
+      const notes=panelBody.querySelector('.release-notes');
+      if (notes) { notes.open=true; notes.scrollIntoView({block:'nearest'}); }
+    },
+    prompt(latest) {
+      view='update';
+      section('本局已结束 · 有新版本','v'+latest.version+' · '+latest.title+'。比分已保存在这台设备。');
+      panelBody.querySelectorAll('.release-notes,.release-update').forEach(el=>el.remove());
+      const notes=document.createElement('ul');
+      notes.className='release-changes';
+      for (const text of latest.notes) {
+        const li=document.createElement('li');li.textContent=text;notes.append(li);
+      }
+      const refresh=action('刷新更新',()=>void release.refresh(),'action primary release-refresh');
+      const keep=action('继续当前版本',play);
+      const actions=group('stack');
+      actions.append(refresh,keep);
+      actions.before(notes);
+      release.sync();
+    }
+  });
   sync();deviceScreen();requestAnimationFrame(frame);
 })();
 
