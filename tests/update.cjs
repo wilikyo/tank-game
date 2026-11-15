@@ -6,7 +6,9 @@ const {chromium}=require('playwright-core');
 const root=path.resolve(__dirname,'..');
 const original=fs.readFileSync(path.join(root,'index.html'),'utf8');
 const current=JSON.parse(fs.readFileSync(path.join(root,'version.json'),'utf8'));
-const future={...current,version:'1.2.0',build:'abcdef0123456789'};
+const parts=current.version.split('.').map(Number);
+parts[2]++;
+const future={...current,version:parts.join('.'),build:'abcdef0123456789'};
 const futureHtml=original.replaceAll(current.version,future.version).replaceAll(current.build,future.build);
 let published=false, fail=false, mismatch=false;
 const server=http.createServer((req,res)=>{
@@ -35,7 +37,7 @@ const server=http.createServer((req,res)=>{
       }});
     });
     await page.goto(origin);
-    await page.getByText('v1.1.0 · 更新公告',{exact:true}).click();
+    await page.getByText('v'+current.version+' · 更新公告',{exact:true}).click();
     await page.getByRole('button',{name:/电脑/}).click();
     await page.getByRole('button',{name:'挑战 GPT · 困难'}).click();
     await page.getByRole('button',{name:'开始对战'}).click();
@@ -51,7 +53,7 @@ const server=http.createServer((req,res)=>{
     await page.waitForFunction(()=>!document.getElementById('release-notice').hidden);
     assert.equal(await page.locator('#release-notice button').isDisabled(),true);
     assert.equal(await page.locator('#panel').evaluate(el=>el.open),false);
-    assert.equal(await page.locator('meta[name=tank-version]').getAttribute('content'),'1.1.0');
+    assert.equal(await page.locator('meta[name=tank-version]').getAttribute('content'),current.version);
     assert(await page.evaluate(t=>testGame.time>t,initialTime));
     await page.evaluate(()=>{
       testGame.bullets=[];
@@ -67,7 +69,7 @@ const server=http.createServer((req,res)=>{
     fail=true;
     await page.locator('#panel').getByRole('button',{name:'刷新更新',exact:true}).click();
     await page.waitForFunction(()=>document.querySelector('#release-notice span').textContent.includes('暂时无法'));
-    assert.equal(await page.locator('meta[name=tank-version]').getAttribute('content'),'1.1.0');
+    assert.equal(await page.locator('meta[name=tank-version]').getAttribute('content'),current.version);
     fail=false;
     await page.getByRole('button',{name:'继续当前版本'}).click();
     await page.waitForFunction(()=>testGame.round===2 && testGame.time>.1);
@@ -76,7 +78,7 @@ const server=http.createServer((req,res)=>{
     await page.getByRole('button',{name:/菜单/}).click();
     await page.getByRole('button',{name:'保存比分并退出'}).click();
     await page.locator('#panel').getByRole('button',{name:'刷新更新',exact:true}).click();
-    await page.waitForFunction(()=>document.querySelector('meta[name=tank-version]').content==='1.2.0');
+    await page.waitForFunction(v=>document.querySelector('meta[name=tank-version]').content===v,future.version);
     assert.equal(await page.locator('#release-notice').isVisible(),false);
     assert.equal(await page.evaluate(()=>JSON.parse(localStorage.getItem('tank-arena:last-session:v1')).score[1]),1);
     published=false;
@@ -87,7 +89,7 @@ const server=http.createServer((req,res)=>{
       await p.getByRole('button',{name:new RegExp(device)}).click();
       await p.getByRole('button',{name:'挑战 GPT · 困难'}).click();
       await p.getByRole('button',{name:'开始对战'}).click();
-      await p.getByRole('button',{name:'v1.1.0 更新公告',exact:true}).click();
+      await p.getByRole('button',{name:'v'+current.version+' 更新公告',exact:true}).click();
       assert.equal(await p.locator('#panel .release-notes').evaluate(el=>el.open),true);
       await p.getByRole('button',{name:'继续对战',exact:true}).click();
       await p.context().setOffline(true);
