@@ -1,0 +1,3754 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#191c24">
+<title>坦克迷阵 · TANK ARENA</title>
+<style>
+:root{color-scheme:light;--ink:#202331;--paper:#faf9f5;--wall:#313440;--orange:#ff8332;--blue:#3489e9;font-family:"Segoe UI","Microsoft YaHei",system-ui,sans-serif;color:var(--ink)}
+*{box-sizing:border-box}body{margin:0;background:#eeede8;min-height:100dvh}button{font:inherit;color:inherit;cursor:pointer;-webkit-tap-highlight-color:transparent}button:focus-visible{outline:3px solid #dc6325;outline-offset:4px}button:disabled{opacity:.45;cursor:default}
+header{height:60px;background:#1c1f28;color:#faf9f7;display:flex;align-items:center;justify-content:space-between;padding:0 clamp(18px,4vw,72px);border-bottom:3px solid #343742}.brand,nav,.hud,.round,.player,.scoreboard,.tool{display:flex;align-items:center}.brand{gap:13px}.brand strong{font-size:22px;letter-spacing:.09em}.wordmark{font-size:10px;color:#b5b7c1;font-weight:700;letter-spacing:.18em;border-left:1px solid #575a63;padding-left:12px}.brand-mark{position:relative;background:var(--orange);width:21px;height:21px;border-left:4px solid #e45d1c;border-right:4px solid #e45d1c;transform:rotate(-25deg);border-radius:3px}.brand-mark:before{content:"";position:absolute;top:-6px;left:5px;width:4px;height:14px;background:var(--orange);outline:2px solid #202331}.brand-mark:after{content:"";position:absolute;top:7px;left:3px;width:8px;height:8px;border-radius:100%;background:#252731}
+nav{gap:8px}.tool{gap:7px;background:transparent;color:#e8e9ec;border:1px solid #51535d;border-radius:5px;padding:5px 11px;font-size:13px}.tool span{font:700 13px monospace}.tool:hover{background:#333642}
+main{width:min(1230px,96vw);height:calc(100dvh - 60px);margin:auto;padding:12px 0;display:grid;grid-template-rows:auto minmax(0,1fr) auto;gap:9px}.hud{justify-content:space-between;font-size:13px;font-weight:650}.round{gap:6px}.round i{width:7px;height:7px;background:#ef7134;border-radius:2px}.round b{font:700 16px Consolas,monospace}.mode-tag{color:#656670}
+.field{position:relative;min-height:0;display:flex;align-items:center;justify-content:center;overflow:hidden;background:#e5e4df;border:1px solid #d0cfc9;border-radius:5px}#board{display:block;touch-action:none}
+.scoreboard{height:73px;gap:clamp(8px,2vw,24px);justify-content:center;background:var(--paper);border:1px solid #d2d1c9;border-radius:5px;padding:0 18px}.player{flex:1;gap:12px}.player.right{flex-direction:row-reverse;text-align:right}.portrait{width:48px;height:45px}.score{font:bold 37px/1 Consolas,monospace;margin-left:auto}.right .score{margin-left:0;margin-right:auto}.player-text{min-width:60px;font-size:14px}.ammo{display:flex;gap:3px;margin:5px 0 2px}.right .ammo{justify-content:flex-end}.ammo i{width:9px;height:5px;border-radius:1px;background:#d4d3cf}.ammo i.ready{background:var(--paint,#ff882c);box-shadow:inset 0 0 0 1px #31344045}.right{--paint:#fff}.player-text small{display:block;color:#635a51;font-size:11px}.player-text small:empty{display:none}.versus{font:900 13px Consolas,monospace;background:var(--ink);color:white;padding:5px 7px;border-radius:3px}
+dialog{width:min(460px,calc(100vw - 28px));max-height:calc(100dvh - 28px);border:2px solid #252935;border-radius:13px;padding:0;background:#f9f8f4;color:var(--ink);box-shadow:6px 7px 0 #16192556;overscroll-behavior:contain}dialog::backdrop{background:#191c2994;backdrop-filter:blur(2px)}.dialog-body{padding:clamp(20px,4vw,32px)}.dialog-body h1{font-size:clamp(24px,4vw,32px);margin:0 0 17px;letter-spacing:-.04em}.dialog-body p{line-height:1.65;font-size:14px;color:#545660;margin:8px 0 18px}.cards{display:grid;grid-template-columns:1fr 1fr;gap:12px}.card{min-height:130px;background:#fff;border:1.5px solid #c3c3c0;border-radius:8px;padding:15px 10px;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:7px}.card:hover,.card:focus-visible{background:#fff1e4;border-color:#d76c25}.card b{font-size:19px}.card small{font-size:12px;color:#5f626c}.device{width:35px;height:25px;position:relative;margin:4px 0 8px;border:3px solid var(--ink);border-radius:3px;background:#ffc18d}.device.pc:after{content:"";position:absolute;bottom:-7px;left:7px;background:var(--ink);height:3px;width:16px}.device.mobile{width:18px;height:30px;margin:0 0 7px;background:#a2cbf3}.device.mobile:after{content:"";height:2px;width:4px;position:absolute;bottom:1px;left:4px;background:var(--ink)}
+.stack{display:grid;gap:9px}.action{border-radius:6px;padding:12px 15px;border:1px solid #b9bab7;background:white;text-align:center;font-weight:650}.action.primary{background:#242836;color:white;border-color:#242836}.action:hover{filter:brightness(.93)}.back{border:0;background:none;padding:12px 0 0;font-size:13px;color:#525567}.history{border-top:1px solid #d5d3ca;margin-top:18px;padding-top:12px;font-size:12px;color:#60616a}.rules{display:grid;gap:8px;font-size:13px;line-height:1.5;margin:0 0 15px}.rules div{display:grid;grid-template-columns:70px 1fr;gap:8px}.rules dt{font-weight:bold}.rules dd{margin:0;color:#51545c}.touch-controls{display:flex;align-items:center;justify-content:space-between;padding:0 max(6vw,env(safe-area-inset-right)) 0 max(6vw,env(safe-area-inset-left));touch-action:none;user-select:none}.stick,.trigger{touch-action:none;user-select:none;-webkit-user-select:none;border:2px solid #9c9da1;display:grid;place-items:center;background:#d6d6d2;border-radius:50%;position:relative}.stick{height:94px;width:94px;background:radial-gradient(circle,#dddcd8 30%,#c4c5c4 100%)}.stick:before,.stick:after{content:"";position:absolute;background:#a6a7a8;width:68%;height:1px}.stick:after{transform:rotate(90deg)}.stick-knob{z-index:1;border:2px solid #898d94;width:41%;height:41%;border-radius:50%;background:#faf9f5;pointer-events:none}.trigger{width:77px;height:77px;border:3px solid #a94c18;background:var(--orange);font-weight:800;color:#251b19;box-shadow:0 3px 0 #a94c18}.trigger:active,.trigger.down{transform:translateY(2px);box-shadow:none;background:#ee7428}[hidden]{display:none!important}
+body.mobile{--game-w:100dvw;--game-h:100dvh;overflow:hidden;overscroll-behavior:none}
+.mobile .stage{position:fixed;top:0;left:0;width:var(--game-w);height:var(--game-h);background:#eeede8}
+body.mobile header{height:36px;padding:0 max(14px,env(safe-area-inset-right)) 0 max(14px,env(safe-area-inset-left))}
+body.mobile main{height:calc(var(--game-h) - 36px);width:100%;padding:4px max(88px,env(safe-area-inset-right)) max(4px,env(safe-area-inset-bottom)) max(88px,env(safe-area-inset-left));gap:4px;grid-template-rows:auto minmax(0,1fr) auto}
+.mobile .touch-controls{position:absolute;left:0;right:0;bottom:17%;padding:0 max(8px,env(safe-area-inset-right)) 0 max(8px,env(safe-area-inset-left));pointer-events:none}
+.mobile .touch-controls>*{pointer-events:auto}.mobile .stick{width:74px;height:74px}.mobile .trigger{width:64px;height:64px}
+.mobile dialog{width:min(460px,calc(var(--game-w) - 24px));max-width:none;max-height:calc(var(--game-h) - 20px)}
+.mobile .dialog-body{padding:15px 20px}.mobile .dialog-body h1{font-size:22px;margin-bottom:6px}
+.color-row{margin:12px 0 17px}.color-row strong{font-size:14px}.swatches{display:flex;gap:6px;flex-wrap:wrap;margin-top:6px}
+.swatch{background:var(--paint);border:2px solid #656776;border-radius:50%;width:29px;height:29px;padding:0}
+.swatch[aria-pressed=true]{outline:2px solid #242836;outline-offset:2px}.swatch:disabled{opacity:.22}.color-row~.back{margin-left:14px}
+@media(orientation:portrait){
+  body.mobile{--game-w:100dvh;--game-h:100dvw}
+  .mobile .stage{left:100%;transform-origin:0 0;transform:rotate(90deg)}
+  .mobile dialog{position:fixed;inset:50% auto auto 50%;margin:0;transform:translate(-50%,-50%) rotate(90deg)}
+}
+body.mobile .scoreboard{height:54px}body.mobile .portrait{height:36px;width:38px}
+@media(max-width:650px){header{height:48px;padding:0 12px}.brand{gap:9px}.brand strong{font-size:18px}.wordmark{display:none}main{height:calc(100dvh - 48px);gap:6px;padding-top:6px}.scoreboard{padding:0 7px;gap:7px}.player{gap:5px}.score{font-size:29px}.portrait{width:34px;height:34px}.player-text{font-size:13px}.cards{gap:8px}}
+@media(orientation:landscape) and (max-height:600px){header{height:36px}.brand strong{font-size:16px}.tool{padding:2px 8px}main{height:calc(100dvh - 36px);gap:4px;padding:4px 0}.hud{font-size:11px}.scoreboard,body.mobile .scoreboard{height:41px}.portrait,body.mobile .portrait{width:33px;height:33px}.score{font-size:25px}.stick{height:74px;width:74px}.trigger{height:64px;width:64px}.card{min-height:87px;padding:9px}.dialog-body{padding:16px 21px}.dialog-body h1{font-size:23px;margin-bottom:8px}}
+
+</style>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+</head>
+<body>
+<div class="stage">
+<header><div class="brand"><span class="brand-mark" aria-hidden="true"></span><strong>坦克迷阵</strong><span class="wordmark">TANK ARENA</span></div>
+<nav aria-label="对战操作"><button id="guide" class="tool" title="玩法"><span aria-hidden="true">?</span> 玩法</button><button id="menu" class="tool" title="暂停菜单"><span aria-hidden="true">Ⅱ</span> 菜单</button></nav></header>
+<main>
+<section class="hud"><div class="round"><i></i>第 <b id="round">01</b> 局</div><div class="mode-tag" id="mode-label">迷宫对决</div></section>
+<div class="field" id="field"><canvas id="board" aria-label="坦克对战迷宫"></canvas></div>
+<section class="scoreboard" aria-label="当前比分">
+<div class="player left"><canvas class="portrait" width="96" height="90" aria-hidden="true"></canvas><div class="player-text"><strong id="name0">玩家 1</strong><div class="ammo" id="ammo0"></div><small id="item0"></small></div><b class="score" id="score0">0</b></div>
+<div class="versus">VS</div>
+<div class="player right"><canvas class="portrait" width="96" height="90" aria-hidden="true"></canvas><div class="player-text"><strong id="name1">GPT</strong><div class="ammo" id="ammo1"></div><small id="item1"></small></div><b class="score" id="score1">0</b></div>
+</section>
+<div class="touch-controls" id="touch-controls" hidden><div class="stick" id="stick" aria-label="移动轮盘"><div class="stick-knob"></div></div><button class="trigger" id="trigger" aria-label="开火">开火</button></div>
+</main>
+</div>
+<dialog id="panel" aria-labelledby="panel-title"><div class="dialog-body" id="panel-body"></div></dialog>
+<script>
+/* Shared simulation. World coordinates are measured in maze cells, time in seconds. */
+(function (global) {
+  'use strict';
+  const TAU = Math.PI * 2, WALL = .075, BODY = .181, SHOT = .033, STEP = 1 / 120;
+  const clamp = (n, a, b) => Math.max(a, Math.min(b, n));
+  const angleDiff = (a, b) => Math.atan2(Math.sin(a-b), Math.cos(a-b));
+  const dist = (a,b) => Math.hypot(a.x-b.x,a.y-b.y);
+  const ITEMS = {
+    shield: ['护盾','抵挡一次命中'], rapid: ['连发','按住扫射，松开即结束，最长 3 秒'],
+    triple: ['三连发','一次射出三颗扇形弹'], laser: ['激光','瞬发光束，最多反弹六次'],
+    seeker: ['追踪弹','出膛后追踪最近的存活坦克，可能折返追自己'], frag: ['破片弹','命中或飞行 1.1 秒时炸成十二片，碎片碰墙即消失'],
+    mine: ['地雷','车尾布雷，离开后感应引爆']
+  };
+  const randomInt = n => Math.floor(Math.random()*n);
+  class Maze {
+    constructor(cols, rows) {
+      this.cols=cols; this.rows=rows;
+      this.links=Array.from({length:cols*rows},()=>[]);
+      const edges=[];
+      for(let i=0;i<this.links.length;i++){
+        if(i%cols<cols-1)edges.push([i,i+1]);
+        if(Math.floor(i/cols)<rows-1)edges.push([i,i+cols]);
+      }
+      for(let i=edges.length-1;i>0;i--){const j=randomInt(i+1);[edges[i],edges[j]]=[edges[j],edges[i]];}
+      const parent=this.links.map((_,i)=>i);
+      function find(i){while(parent[i]!==i){parent[i]=parent[parent[i]];i=parent[i];}return i;}
+      this.walls=[];
+      const wall=(x1,y1,x2,y2)=>this.walls.push({x1:x1-WALL/2,y1:y1-WALL/2,x2:x2+WALL/2,y2:y2+WALL/2});
+      for(const [a,b] of edges){
+        const p=find(a),q=find(b);
+        if(p!==q || Math.random()<.18){parent[p]=q;this.links[a].push(b);this.links[b].push(a);}
+        else {const x=a%cols,y=Math.floor(a/cols); if(b===a+1)wall(x+1,y,x+1,y+1);else wall(x,y+1,x+1,y+1);}
+      }
+      wall(0,0,cols,0);wall(0,rows,cols,rows);wall(0,0,0,rows);wall(cols,0,cols,rows);
+    }
+    cell(p){return clamp(Math.floor(p.x),0,this.cols-1)+this.cols*clamp(Math.floor(p.y),0,this.rows-1);}
+    center(i){return {x:i%this.cols+.5,y:Math.floor(i/this.cols)+.5};}
+    route(start,end){
+      const prev=new Int16Array(this.links.length).fill(-1), queue=[start]; prev[start]=start;
+      for(let k=0;k<queue.length && prev[end]===-1;k++)
+        for(const n of this.links[queue[k]])if(prev[n]===-1){prev[n]=queue[k];queue.push(n);}
+      const result=[];for(let i=end;i!==start;i=prev[i])result.push(i);
+      return result.reverse();
+    }
+    /* Intersect the swept point with walls expanded by the object's radius. */
+    cast(x,y,dx,dy,limit,r=0,walls=this.walls){
+      let best=null, nearest=limit;
+      for(const w of walls){
+        const l=w.x1-r,h=w.x2+r,t=w.y1-r,b=w.y2+r;
+        if(Math.abs(dx)<1e-10 && (x<l || x>h))continue;
+        if(Math.abs(dy)<1e-10 && (y<t || y>b))continue;
+        const ax=Math.abs(dx)<1e-10?-Infinity:((dx>0?l:h)-x)/dx;
+        const bx=Math.abs(dx)<1e-10?Infinity:((dx>0?h:l)-x)/dx;
+        const ay=Math.abs(dy)<1e-10?-Infinity:((dy>0?t:b)-y)/dy;
+        const by=Math.abs(dy)<1e-10?Infinity:((dy>0?b:t)-y)/dy;
+        const enter=Math.max(ax,ay),leave=Math.min(bx,by);
+        if(enter<-.000001 || leave<enter || enter>nearest+.000001)continue;
+        const nx=ax>=ay-.000001?-Math.sign(dx):0,ny=ay>=ax-.000001?-Math.sign(dy):0;
+        if(best && Math.abs(enter-nearest)<.000001){best.nx ||= nx;best.ny ||= ny;}
+        else {nearest=Math.max(0,enter);best={d:nearest,nx,ny};}
+      }
+      return best;
+    }
+    fits(x,y,r,walls=this.walls){
+      for(const w of walls){
+        if(x<=w.x1-r || x>=w.x2+r || y<=w.y1-r || y>=w.y2+r)continue;
+        const dx=x-clamp(x,w.x1,w.x2),dy=y-clamp(y,w.y1,w.y2);
+        if(dx*dx+dy*dy<r*r)return false;
+      }
+      return true;
+    }
+    visible(a,b,r=0){
+      const d=dist(a,b);return d<.00001 || !this.cast(a.x,a.y,(b.x-a.x)/d,(b.y-a.y)/d,d,r);
+    }
+  }
+  function circleHit(x,y,dx,dy,tank,r){
+    const ox=tank.x-x,oy=tank.y-y,along=ox*dx+oy*dy;
+    const discr=r*r-(ox*ox+oy*oy-along*along);
+    if(discr<0 || along+Math.sqrt(discr)<0)return Infinity;
+    return Math.max(0,along-Math.sqrt(discr));
+  }
+  const idle=()=>({drive:0,turn:0,held:false,press:0});
+  class Game {
+    constructor(options={}){
+      this.options=options;this.score=[0,0];this.round=0;this.newRound();
+    }
+    newRound(){
+      const sizes=[[13,7],[12,7],[11,7],[12,8]];
+      const [c,r]=sizes[randomInt(sizes.length)];
+      this.maze=new Maze(c,r);this.time=0;this.finishAt=null;this.round++;this.nextDrop=8;
+      this.bullets=[];this.laserHits=[];this.items=[];this.mines=[];this.effects=[];this.result=null;
+      const flip=randomInt(2);
+      this.tanks=[0,1].map(i=>({id:i,x:(i^flip)?c-1.5:1.5,y:1.5+randomInt(r-2),a:(i^flip)?Math.PI:0,
+        alive:true,item:null,rapid:null,flash:0,shieldFlash:0}));
+      this.ai=this.options.bot && ['medium','hard'].includes(this.options.difficulty)
+        ? new global.TankPilot(this.options.difficulty) : new EasyPilot();this.botInput=idle();
+    }
+    effect(type,x,y,life,extra={}){this.effects.push({type,x,y,life,total:life,...extra});}
+    hit(t){
+      if(!t.alive)return;
+      if(t.item==='shield'){t.item=null;t.shieldFlash=.22;this.effect('shield',t.x,t.y,.3);return;}
+      t.alive=false;t.rapid=null;this.effect('blast',t.x,t.y,.65,{color:t.id});
+      if(this.finishAt===null)this.finishAt=this.time+2.5;
+    }
+    move(t,input,dt){
+      if(input.aim!==undefined){
+        const diff=angleDiff(input.aim,t.a);
+        t.a+=clamp(diff,-3.65*dt,3.65*dt);
+      }else t.a+=(input.turn||0)*3.65*dt;
+      const drive=(input.drive||0)*2.02*dt, x=t.x+Math.cos(t.a)*drive,y=t.y+Math.sin(t.a)*drive;
+      if(this.maze.fits(x,t.y,BODY))t.x=x;
+      if(this.maze.fits(t.x,y,BODY))t.y=y;
+    }
+    shoot(t,kind='regular',offset=0){
+      const a=t.a+offset;
+      this.bullets.push({kind,owner:t.id,x:t.x,y:t.y,dx:Math.cos(a),dy:Math.sin(a),age:0,armed:false,
+        speed:kind==='seeker'?2.65:kind==='rapid'?4.65:3.75,life:10,repath:0});
+      t.flash=.07;
+    }
+    count(id){return this.bullets.filter(b=>!b.gone && b.kind==='regular' && b.owner===id).length;}
+    fire(t){
+      if(!t.alive || t.rapid)return;
+      const kind=t.item;
+      if(!kind || kind==='shield'){if(this.count(t.id)<5)this.shoot(t);return;}
+      if(kind==='rapid'){t.rapid={elapsed:0,next:.22};return;}
+      t.item=null;t.flash=.08;
+      if(kind==='triple'){for(const a of [-.18,0,.18])this.shoot(t,kind,a);}
+      else if(kind==='laser')this.laser(t);
+      else if(kind==='mine'){
+        const p={x:t.x-Math.cos(t.a)*.26,y:t.y-Math.sin(t.a)*.26};
+        const pos=this.maze.fits(p.x,p.y,.07)&&this.maze.visible(t,p)?p:t;
+        this.mines.push({x:pos.x,y:pos.y,owner:t.id,armed:false});
+      }else this.shoot(t,kind);
+    }
+    volley(t,held,dt){
+      const burst=t.rapid;if(!burst)return;
+      if(held){
+        burst.elapsed+=dt;
+        if(burst.elapsed>=burst.next && burst.elapsed<=3){this.shoot(t,'rapid',(Math.random()-.5)*.12);burst.next+=.095;}
+      }
+      if(!held || burst.elapsed>=3){t.rapid=null;t.item=null;}
+    }
+    trace(b,length,maxBounces,onSegment,preview=false){
+      let left=length;
+      if(dist(b,this.tanks[b.owner])>BODY+SHOT+.001)b.armed=true;
+      for(let i=0;i<=maxBounces && left>1e-7;i++){
+        const wall=this.maze.cast(b.x,b.y,b.dx,b.dy,left,b.kind==='laser'?0:SHOT);
+        let d=wall?wall.d:left, victim=null;
+        for(const t of this.tanks){
+          if(!t.alive || (t.id===b.owner && !b.armed))continue;
+          const h=circleHit(b.x,b.y,b.dx,b.dy,t,BODY+(b.kind==='laser'?0:SHOT));
+          if(h<=d){d=h;victim=t;}
+        }
+        const x=b.x,y=b.y;b.x+=b.dx*d;b.y+=b.dy*d;
+        if(onSegment)onSegment(x,y,b.x,b.y);
+        if(victim){
+          if(!preview){
+            if(b.kind==='laser')this.laserHits.push(victim);else this.hit(victim);
+            if(b.kind==='frag')this.fragments(b);
+          }
+          b.gone=true;return;
+        }
+        if(!wall)return;
+        if(b.kind==='fragment'){b.gone=true;return;}
+        b.armed=true;
+        if(wall.nx)b.dx=-b.dx;if(wall.ny)b.dy=-b.dy;
+        b.x+=wall.nx*.00001;b.y+=wall.ny*.00001;left-=d;
+      }
+    }
+    laserPath(t,length,preview=false){
+      const b={kind:'laser',x:t.x,y:t.y,dx:Math.cos(t.a),dy:Math.sin(t.a),owner:t.id,armed:false};
+      const lines=[];this.trace(b,length,6,(...s)=>lines.push(s),preview);
+      return lines;
+    }
+    laser(t){
+      const lines=this.laserPath(t,Math.hypot(this.maze.cols,this.maze.rows)*8);
+      this.effect('laser',t.x,t.y,.58,{lines,owner:t.id});
+    }
+    fragments(b){
+      this.effect('spark',b.x,b.y,.28);
+      for(let i=0;i<12;i++){
+        const a=(i+(Math.random()-.5)*.55)*TAU/12+Math.atan2(b.dy,b.dx);
+        this.bullets.push({kind:'fragment',x:b.x,y:b.y,dx:Math.cos(a),dy:Math.sin(a),speed:3.2+Math.random()*1.1,spin:(Math.random()-.5)*18,life:2.8,age:0,owner:b.owner,armed:true});
+      }
+      b.gone=true;
+    }
+    guide(b,dt){
+      let enemy=null;
+      for(const tank of this.tanks){
+        if(tank.alive && (!enemy || dist(b,tank)<dist(b,enemy)))enemy=tank;
+      }
+      if(!enemy){b.targetId=null;return;}
+      if(b.targetId!==enemy.id){b.targetId=enemy.id;b.repath=0;}
+      // Give the missile forward travel before it starts steering, including back toward its launcher.
+      if(b.age<.8)return;
+      b.repath-=dt;
+      if(b.repath<=0){
+        b.repath=.12;const m=this.maze, route=m.route(m.cell(b),m.cell(enemy));
+        const candidates=route.map(i=>m.center(i));candidates.push(enemy);
+        b.target=candidates.findLast(p=>m.visible(b,p,SHOT+.012)) || m.center(m.cell(b));
+      }
+      if(b.target && dist(b,b.target)>.025){
+        const current=Math.atan2(b.dy,b.dx),wanted=Math.atan2(b.target.y-b.y,b.target.x-b.x);
+        const a=current+clamp(angleDiff(wanted,current),-6.8*dt,6.8*dt);b.dx=Math.cos(a);b.dy=Math.sin(a);
+      }
+    }
+    projectiles(dt){
+      const n=this.bullets.length;
+      for(let i=0;i<n;i++){
+        const b=this.bullets[i];b.age+=dt;
+        if(b.age>=b.life){b.gone=true;continue;}
+        if(b.kind==='seeker')this.guide(b,dt);
+        if(b.kind==='seeker' || b.kind==='fragment'){
+          b.exhaust=(b.exhaust||0)-dt;
+          if(b.exhaust<=0){
+            const missile=b.kind==='seeker';b.exhaust=missile?.035:.065;
+            this.effect('smoke',b.x-b.dx*(missile?.09:0),b.y-b.dy*(missile?.09:0),missile?.62:.24,
+              {target:missile?b.targetId:null,jitter:(Math.random()-.5)*.07,small:!missile});
+          }
+        }
+        this.trace(b,b.speed*dt,4);
+        if(!b.gone && b.kind==='frag' && b.age>=1.1)this.fragments(b);
+      }
+      this.bullets=this.bullets.filter(b=>!b.gone);
+      for(const m of this.mines){
+        const owner=this.tanks[m.owner];if(!owner.alive || dist(m,owner)>.59)m.armed=true;
+        if(m.armed && this.tanks.some(t=>t.alive&&dist(m,t)<.57&&this.maze.visible(m,t))){
+          this.effect('blast',m.x,m.y,.48);m.gone=true;
+          for(const t of this.tanks)if(t.alive && dist(m,t)<.85 && this.maze.visible(m,t))this.hit(t);
+        }
+      }
+      this.mines=this.mines.filter(m=>!m.gone);
+    }
+    drops(){
+      this.items=this.items.filter(i=>i.until>this.time);
+      if(this.time>=this.nextDrop){
+        this.nextDrop=this.time+12+Math.random()*4;
+        if(this.items.length<2){
+          const cells=this.maze.links.map((_,i)=>this.maze.center(i)).filter(p=>
+            this.tanks.every(t=>dist(t,p)>.7)&&this.items.every(i=>dist(i,p)>.8));
+          const keys=Object.keys(ITEMS);if(cells.length)this.items.push({...cells[randomInt(cells.length)],kind:keys[randomInt(keys.length)],until:this.time+16});
+        }
+      }
+      for(const t of this.tanks){
+        if(!t.alive || t.item)continue;
+        const i=this.items.findIndex(p=>dist(t,p)<.34);
+        if(i>=0){t.item=this.items.splice(i,1)[0].kind;this.effect('pickup',t.x,t.y,.38);}
+      }
+    }
+    step(dt,inputs){
+      this.time+=dt;
+      if(this.options.bot)this.botInput=this.ai.control(this,dt,inputs[0]);
+      const controls=[inputs[0],this.options.bot?this.botInput:inputs[1]];
+      this.tanks.forEach((t,i)=>{
+        t.flash=Math.max(0,t.flash-dt);t.shieldFlash=Math.max(0,t.shieldFlash-dt);
+        if(t.alive)this.move(t,controls[i],dt);
+      });
+      this.drops();
+      this.tanks.forEach((t,i)=>{
+        const k=controls[i];const presses=k.press;k.press=0;
+        const edges=k.edges||[];
+        if(t.alive){
+          for(const down of edges){if(down)this.fire(t);else this.volley(t,false,0);}
+          for(let j=0;j<presses;j++)this.fire(t);
+          this.volley(t,k.held,dt);
+        }
+        edges.length=0;
+      });
+      for(const victim of this.laserHits)this.hit(victim);
+      this.laserHits.length=0;
+      this.projectiles(dt);
+      for(const e of this.effects)e.life-=dt;
+      this.effects=this.effects.filter(e=>e.life>0);
+      if(this.finishAt!==null && this.time+1e-8>=this.finishAt){
+        const survivors=this.tanks.filter(t=>t.alive);
+        const winner=survivors.length===1?survivors[0].id:null;
+        if(winner!==null)this.score[winner]++;
+        this.result={winner,round:this.round};return this.result;
+      }
+      return null;
+    }
+  }
+  class EasyPilot {
+    constructor(id=1){this.id=id;this.think=0;this.fireIn=1.2;this.waypoint=null;this.mode='walk';this.hold=0;}
+    control(game,dt){
+      const t=game.tanks[this.id],enemy=game.tanks[1-this.id],m=game.maze,input=idle();
+      if(!t.alive || !enemy.alive)return input;
+      this.think-=dt;this.fireIn-=dt;
+      if(this.think<=0){
+        this.think=.24+Math.random()*.15;
+        const clear=m.visible(t,enemy,BODY*.55);
+        if(clear && dist(t,enemy)<6.5){this.mode='shoot';this.waypoint={x:enemy.x,y:enemy.y};}
+        else{
+          this.mode='walk';
+          const near=game.items.find(i=>!t.item && dist(i,t)<3.5);
+          const goal=near||enemy,route=m.route(m.cell(t),m.cell(goal));
+          const points=route.slice(0,3).map(i=>m.center(i));
+          this.waypoint=points.findLast(p=>m.visible(t,p,BODY+.02)) || (route.length?m.center(m.cell(t)):goal);
+        }
+      }
+      if(!this.waypoint)return input;
+      const a=Math.atan2(this.waypoint.y-t.y,this.waypoint.x-t.x),diff=angleDiff(a,t.a);
+      input.turn=clamp(diff*1.7,-1,1);
+      if(Math.abs(diff)<.52 && dist(t,this.waypoint)>.08 && (this.mode==='walk'||dist(t,enemy)>3.2))input.drive=.78;
+      if(this.mode==='shoot' && Math.abs(diff)<.13 && this.fireIn<=0){
+        input.press=1;this.fireIn=.95+Math.random()*.85;if(t.item==='rapid')this.hold=2.4;
+      }
+      input.held=this.hold>0;this.hold-=dt;return input;
+    }
+  }
+  global.TankArena={Game,Maze,EasyPilot,ITEMS,STEP,BODY,SHOT,idle,dist,angleDiff,clamp};
+})(globalThis);
+
+</script>
+<script>
+/* Local arena opponent. Planning works on poses and projected paths; only controller
+   inputs are returned to the live game. Distances are maze cells, times are seconds. */
+(function(global){
+  'use strict';
+  const {BODY,SHOT,idle,angleDiff,clamp,dist}=TankArena;
+  const H=.12, SPEED=3.75, TURN=3.65;
+  const bearing=(a,b)=>Math.atan2(b.y-a.y,b.x-a.x);
+  const sq=(a,b)=>(a.x-b.x)**2+(a.y-b.y)**2;
+  function pose(t){return {x:t.x,y:t.y,a:t.a};}
+  function positionAt(line,time){
+    const u=clamp(time/H,0,line.length-1),i=Math.floor(u),a=line[i],b=line[Math.min(i+1,line.length-1)],f=u-i;
+    return {x:a.x+(b.x-a.x)*f,y:a.y+(b.y-a.y)*f};
+  }
+  function steer(t,angle,drive){return {turn:clamp(angleDiff(angle,t.a)/(TURN*H),-1,1),drive};}
+  function advance(g,t,input,dt){
+    // Substeps also prevent a forecast from cutting diagonally through a corner.
+    g.move(t,input,dt/2);g.move(t,input,dt/2);
+  }
+  function forecastEnemy(g,e,input,hard){
+    const d=input.drive||0;
+    const cases=[{input,weight:hard?.49:.8},{input:{drive:0,turn:0},weight:.16}];
+    return cases.map(c=>{
+      const p=pose(e),line=[{...p}];
+      for(let j=0;j<17;j++){advance(g,p,j*H<(c.delay||0)?input:c.input,H);line.push({...p});}
+      return {line,weight:c.weight};
+    });
+  }
+  // A time-parameterized polyline. All reflections use the arena's actual wall cast.
+  function flight(maze,origin,a,length,radius,bounces,absorb=false){
+    let x=origin.x,y=origin.y,dx=Math.cos(a),dy=Math.sin(a),travel=0;
+    const parts=[];
+    for(let n=0;n<=bounces && travel<length;n++){
+      const w=maze.cast(x,y,dx,dy,length-travel,radius);
+      const len=w?w.d:length-travel;
+      parts.push({x,y,dx,dy,start:travel,end:travel+len,bounced:n>0});
+      travel+=len;if(!w||absorb)break;
+      x+=dx*len+w.nx*.00001;y+=dy*len+w.ny*.00001;
+      if(w.nx)dx=-dx;if(w.ny)dy=-dy;
+    }
+    return parts;
+  }
+  function along(parts,d){
+    for(const s of parts)if(d<=s.end+1e-7){
+      const u=d-s.start;return {x:s.x+s.dx*u,y:s.y+s.dy*u};
+    }
+    return null;
+  }
+  function relativeClearance(p,q,b,c){
+    const x=p.x-b.x,y=p.y-b.y,dx=q.x-c.x-x,dy=q.y-c.y-y;
+    const k=clamp(-(x*dx+y*dy)/(dx*dx+dy*dy||1),0,1);
+    return Math.hypot(x+dx*k,y+dy*k);
+  }
+  function hazards(g,t,enemy,input,steps,hard,branchMissiles=false){
+    const slices=Array.from({length:steps},()=>[]);
+    function add(b,delay=0,confidence=1){
+      const life=Math.min(b.life-b.age,steps*H-delay);
+      if(life<=0||dist(b,t)>(b.speed+2.02)*steps*H+.6)return;
+      const fuse=b.kind==='frag'?Math.max(0,1.1-b.age):Infinity;
+      const length=b.speed*Math.min(life,fuse);
+      const parts=flight(g.maze,b,Math.atan2(b.dy,b.dx),length,SHOT,16,b.kind==='fragment');
+      for(let j=0;j<steps;j++){
+        const lo=Math.max(0,j*H-delay)*b.speed,hi=Math.min(length,((j+1)*H-delay)*b.speed);
+        if(hi<=lo)continue;
+        for(const s of parts){
+          const u=Math.max(s.start,lo),v=Math.min(s.end,hi);if(v<=u)continue;
+          if(b.owner===t.id&&!b.armed&&!s.bounced)continue;
+          const p={x:s.x+(u-s.start)*s.dx,y:s.y+(u-s.start)*s.dy};
+          const q={x:s.x+(v-s.start)*s.dx,y:s.y+(v-s.start)*s.dy};
+          slices[j].push({p,q,lo:(delay+u/b.speed)/H-j,hi:(delay+v/b.speed)/H-j,confidence});
+        }
+      }
+      if(fuse<life){
+        const at=along(parts,length);if(at)for(let k=0;k<12;k++){
+          const a=k*Math.PI/6+Math.atan2(b.dy,b.dx);
+          add({...at,kind:'fragment',dx:Math.cos(a),dy:Math.sin(a),age:0,life:1,speed:3.75,armed:true,owner:b.owner},delay+fuse,.75);
+        }
+      }
+    }
+    for(const b of g.bullets){
+      if(b.kind==='seeker'){
+        if(branchMissiles)continue;
+        const copy={...b},dummy={tanks:g.tanks,maze:g.maze};
+        for(let j=0;j<steps && copy.age<copy.life;j++){
+          const p={x:copy.x,y:copy.y};copy.age+=H;g.guide.call(dummy,copy,H);
+          const path=flight(g.maze,copy,Math.atan2(copy.dy,copy.dx),copy.speed*H,SHOT,4);
+          const end=along(path,copy.speed*H);if(!end)break;
+          Object.assign(copy,end,{dx:path.at(-1).dx,dy:path.at(-1).dy});
+          if(b.owner!==t.id||b.armed||j>0)slices[j].push({p,q:end,lo:0,hi:1,confidence:.9});
+        }
+      }else add(b);
+    }
+    return slices;
+  }
+  function mineAwareRoute(m,start,end,mines){
+    if(!mines.length)return m.route(start,end);
+    const cost=new Float64Array(m.links.length).fill(Infinity);
+    const prev=new Int16Array(m.links.length).fill(-1),open=new Set([start]);
+    cost[start]=0;
+    while(open.size){
+      let cell=-1;
+      for(const i of open)if(cell<0||cost[i]<cost[cell])cell=i;
+      if(cell===end)break;
+      open.delete(cell);
+      for(const n of m.links[cell]){
+        const p=m.center(n),from=m.center(cell);
+        const unsafe=mines.some(mine=>relativeClearance(from,p,mine,mine)<.72 && m.visible(mine,p));
+        const score=cost[cell]+1+(unsafe?8:0);
+        if(score<cost[n]){cost[n]=score;prev[n]=cell;open.add(n);}
+      }
+    }
+    const route=[];for(let i=end;i!==start;i=prev[i])route.push(i);
+    return route.reverse();
+  }
+  function walkable(m,p,q){
+    // The current pose can legally touch a wall. A padded ray starting inside
+    // that wall would skip its negative entry distance and see through it.
+    const n=Math.max(1,Math.ceil(dist(p,q)/.10));
+    for(let j=1;j<=n;j++){
+      const u=j/n;if(!m.fits(p.x+(q.x-p.x)*u,p.y+(q.y-p.y)*u,BODY))return false;
+    }
+    return true;
+  }
+  function routeInfo(m,p,goal,mines=[]){
+    const cells=mineAwareRoute(m,m.cell(p),m.cell(goal),mines);
+    const points=cells.slice(0,4).map(i=>m.center(i));
+    if(cells.length<=4)points.push(goal);
+    const next=points.findLast(v=>walkable(m,p,v) && !mines.some(mine=>relativeClearance(p,v,mine,mine)<.66 && m.visible(mine,v))) || m.center(m.cell(p));
+    return {next,cells,cost:cells.length?dist(p,m.center(cells[0]))+cells.length-1+dist(m.center(cells.at(-1)),goal):dist(p,goal)};
+  }
+  const itemValue={shield:5.8,laser:5.6,triple:3.1,rapid:2.6,mine:2.5,frag:3.4,seeker:2.8};
+  function destination(g,t,e,hard,reserve){
+    const m=g.maze,mines=hard?g.mines.filter(m=>m.armed):[],attack=routeInfo(m,t,e,mines);
+    let best=0,pick=null;
+    for(const item of g.items){
+      if(t.item||!e.alive)break;
+      const route=routeInfo(m,t,item,mines),eta=route.cost/2.02;
+      if(eta+.16>item.until-g.time)continue;
+      const margin=routeInfo(m,e,item).cost-route.cost;
+      const value=itemValue[item.kind]-eta*(hard?.95:1.55)+clamp(margin,-3,.6)
+        -(m.visible(t,e)&&dist(t,e)<2.1?2.5:0);
+      if(value>best){best=value;pick=route;}
+    }
+    if(pick)return {p:pick.next,type:'pickup'};
+    if(!e.alive || (reserve<2 && dist(t,e)<4 && hard)){
+      const cell=m.cell(t),cells=[cell,...m.links[cell]];
+      let p=m.center(cell),score=-Infinity;
+      for(const i of cells){
+        const v=m.center(i),s=dist(v,e)+(!m.visible(v,e)?2:0)+m.links[i].length*.17;
+        if(s>score){p=v;score=s;}
+      }
+      return {p,type:'retreat'};
+    }
+    return {p:attack.next,type:'advance'};
+  }
+  function anglesFor(g,t,e,forecasts,hard){
+    const angles=[],seen=new Set(),m=g.maze;
+    function add(a){
+      const key=Math.round(Math.atan2(Math.sin(a),Math.cos(a))*120);
+      if(!seen.has(key)){seen.add(key);angles.push(a);}
+    }
+    const lead=clamp(dist(t,e)/SPEED,0,1.7);
+    const predicted=positionAt(forecasts[0].line,lead);
+    const targets=[e,predicted];
+    add(t.a);for(const p of targets)add(bearing(t,p));
+    return angles;
+  }
+  function scoreShot(g,t,e,a,forecasts,hard){
+    const laser=t.item==='laser',speed=t.item==='rapid'?4.65:t.item==='seeker'?2.65:SPEED;
+    const horizon=hard?1.9:1.25,r=laser?0:SHOT;
+    const path=flight(g.maze,t,a,laser?30:horizon*speed,r,laser?6:hard?4:0);
+    let selfTime=Infinity;
+    for(const s of path){
+      if(!s.bounced)continue;
+      const u=clamp((t.x-s.x)*s.dx+(t.y-s.y)*s.dy,0,s.end-s.start);
+      if(Math.hypot(t.x-s.x-u*s.dx,t.y-s.y-u*s.dy)<BODY+r+.035){
+        selfTime=laser?0:(s.start+u)/speed;break;
+      }
+    }
+    if(laser){
+      for(const s of path){
+        const de=(e.x-s.x)*s.dx+(e.y-s.y)*s.dy;
+        const ds=(t.x-s.x)*s.dx+(t.y-s.y)*s.dy;
+        const self=s.bounced&&ds>=0&&ds<=s.end-s.start && Math.hypot(t.x-s.x-ds*s.dx,t.y-s.y-ds*s.dy)<BODY;
+        if(de>=0&&de<=s.end-s.start && Math.hypot(e.x-s.x-de*s.dx,e.y-s.y-de*s.dy)<BODY && (!self||de<ds))return 1.6;
+        if(self)break;
+      }
+      return -1;
+    }
+    if(selfTime<.37)return -1;
+    const effective=t.item==='frag'?Math.min(1.1,horizon):horizon;
+    let total=0,weight=0;
+    for(const f of forecasts){
+      let best=0;
+      for(const s of path){
+        const lo=s.start/speed,hi=Math.min(effective,s.end/speed,selfTime);
+        if(hi<=lo)continue;
+        for(let j=Math.floor(lo/H);j<Math.ceil(hi/H);j++){
+          const u=Math.max(lo,j*H),v=Math.min(hi,(j+1)*H);
+          const p=positionAt(f.line,u),q=positionAt(f.line,v);
+          const b={x:s.x+(u*speed-s.start)*s.dx,y:s.y+(u*speed-s.start)*s.dy};
+          const c={x:s.x+(v*speed-s.start)*s.dx,y:s.y+(v*speed-s.start)*s.dy};
+          const separation=relativeClearance(p,q,b,c);
+          const chance=clamp((.52-separation)/.34,0,1);
+          best=Math.max(best,chance*(1-.19*u)*(s.bounced?.94:1));
+        }
+      }
+      total+=f.weight*best*(f.covered?.40:1);weight+=f.weight;
+    }
+    return total/weight-(selfTime<1.25?.36*(1.25-selfTime):0);
+  }
+  function chooseShot(g,t,e,forecasts,hard){
+    let best=null;
+    for(const a of anglesFor(g,t,e,forecasts,hard)){
+      const value=scoreShot(g,t,e,a,forecasts,hard);
+      const rank=value-.2*Math.abs(angleDiff(a,t.a));
+      if(!best||rank>best.rank)best={a,value,rank};
+    }
+    return best;
+  }
+  function dodgeCost(g,t,p,q,slice,mines,j){
+    let worst=0;
+    for(const b of slice){
+      const dx=q.x-p.x,dy=q.y-p.y;
+      const d=relativeClearance({x:p.x+dx*b.lo,y:p.y+dy*b.lo},{x:p.x+dx*b.hi,y:p.y+dy*b.hi},b.p,b.q);
+      if(d<.48)worst=Math.max(worst,(d<BODY+SHOT+.015?32:4)*clamp((.49-d)/.26,0,1)*b.confidence);
+    }
+    for(const m of mines){
+      const d=dist(q,m);
+      if((m.armed||m.owner!==t.id)&&d<.78&&g.maze.visible(q,m))worst=Math.max(worst,(d<.58?40:6)*(.8-d)/.22);
+    }
+    return worst/(1+.45*j);
+  }
+  function chooseMove(g,t,goal,attack,threats,hard,old){
+    const point=goal.p,heading=bearing(t,point);
+    const aim=attack?.a??heading;
+    const combat=attack && attack.rank>.26 && goal.type==='advance';
+    const drives=hard?[-1,0,1]:[0,1,-1],turns=hard?[-1,-.5,0,.5,1]:[-1,0,1];
+    const plans=[];
+    for(const drive of drives)for(const turn of turns)plans.push({drive,turn});
+    for(const drive of drives)plans.push({drive,aim});
+    plans.push({drive:1,aim:heading},{drive:-1,aim:heading+Math.PI});
+    let best=null;
+    for(const plan of plans){
+      const p=pose(t);let risk=0,peak=0,progress=0,aimScore=0;
+      for(let j=0;j<threats.length;j++){
+        const start={x:p.x,y:p.y};
+        const arrived=!combat && dist(p,point)<.16;
+        const command=arrived?{drive:0,turn:0}:plan.aim!==undefined?steer(p,plan.aim,plan.drive):{drive:plan.drive,turn:plan.straighten&&j>=3?0:plan.turn};
+        advance(g,p,command,H);
+        const danger=dodgeCost(g,t,start,p,threats[j],g.mines,j);
+        risk+=danger;peak=Math.max(peak,danger);
+        const f=1/(1+j*.28);
+        progress+=(dist(start,point)-dist(p,point))*f;
+        if(combat)aimScore+=Math.cos(angleDiff(aim,p.a))*f;
+      }
+      const align=combat?aimScore*1.55:Math.cos(angleDiff(heading,p.a))*.28;
+      const score=align+progress*(combat?1.05:5.0) - (peak+risk*.4)*(t.item==='shield'?.73:1)
+        -Math.abs(plan.drive-old.drive)*.025;
+      if(!best||score>best.score)best={...plan,score};
+    }
+    return best;
+  }
+  class TacticalPilot{
+    constructor(difficulty,id=1){
+      if(difficulty==='hard')return new global.ExpertPilot(id);
+      this.hard=false;this.id=id;this.plan={drive:0,turn:0};this.nextThink=0;this.nextShot=0;this.holdUntil=0;
+      this.intent=null;this.attack=null;
+    }
+    control(g,dt,opponent=idle()){
+      const t=g.tanks[this.id],e=g.tanks[1-this.id],hard=this.hard,cmd=idle();
+      if(!t.alive)return cmd;
+      if(g.time>=this.nextThink){
+        const hazardsAhead=hazards(g,t,e,opponent,hard?12:4,hard);
+        const supply=5-g.count(t.id);
+        const goal=destination(g,t,e,hard,supply);
+        const forecasts=e.alive?forecastEnemy(g,e,opponent,hard):[];
+        const shot=e.alive && t.item!=='mine' && dist(t,e)<(hard?9:6.2) && (supply||(t.item&&t.item!=='shield'))
+          ?chooseShot(g,t,e,forecasts,hard):null;
+        this.plan=chooseMove(g,t,goal,shot,hazardsAhead,hard,this.plan);
+        this.attack=shot;this.intent=goal.type;
+        this.nextThink=g.time+(hard?.078:.24);
+      }
+      const plan=this.plan;
+      cmd.drive=plan.drive;cmd.turn=plan.aim===undefined?plan.turn:clamp(angleDiff(plan.aim,t.a)/(TURN*dt),-1,1);
+      cmd.held=g.time<this.holdUntil;
+      if(!e.alive || g.time<this.nextShot || t.rapid)return cmd;
+      const a=this.attack,ammo=5-g.count(t.id),gap=dist(t,e);
+      const aimed=a && Math.abs(angleDiff(t.a,a.a))<(hard?.057:.095);
+      // Increase the price of consecutive shots. A high-confidence hit can spend the reserve.
+      const threshold=hard?(.29+(5-ammo)*.083+(ammo===1?.14:0)):.54;
+      const mine=t.item==='mine' && gap<3.2 && (g.maze.links[g.maze.cell(t)].length<=3 || gap<1.8);
+      if(mine || (t.item!=='mine' && aimed && a.value>threshold && (ammo||(t.item&&t.item!=='shield')))){
+        cmd.press=1;cmd.held=true;
+        if(t.item==='rapid')this.holdUntil=g.time+1.1;
+        this.nextShot=g.time+(hard?(ammo>=4?.23:.39):.80);
+      }
+      return cmd;
+    }
+  }
+  global.TankTactics={H,SPEED,TURN,pose,bearing,advance,positionAt,relativeClearance,flight,along,
+    hazards,walkable,routeInfo,itemValue,anglesFor,scoreShot,dodgeCost};
+  global.TankPilot=TacticalPilot;
+})(globalThis);
+
+</script>
+<script>
+/* A round-local movement model. Every observation has already occurred in the
+   current simulation. Prediction weights are corrected against later observations. */
+(function (global) {
+  'use strict';
+  const { clamp, angleDiff, dist, BODY } = TankArena;
+  const { H, TURN, pose, bearing, advance, positionAt } = TankTactics;
+
+  const sign = x => Math.abs(x) < .25 ? 0 : Math.sign(x);
+  const weightFloor = .015;
+  const lookahead = 19;
+  const samplePeriod = .09;
+
+  function turnFromInput(tank, input) {
+    if (input.aim === undefined) return input.turn || 0;
+    return clamp(angleDiff(input.aim, tank.a) / .34, -1, 1);
+  }
+
+  function copyInput(tank, input) {
+    return {
+      drive: clamp(input.drive || 0, -1, 1),
+      turn: turnFromInput(tank, input),
+      aim: input.aim
+    };
+  }
+
+  // Move toward an actual reachable maze exit rather than extrapolating a
+  // velocity through a wall. A reversing player can keep the barrel facing us.
+  function follow(tank, target, reverse) {
+    const angle = bearing(tank, target) + (reverse ? Math.PI : 0);
+    const delta = angleDiff(angle, tank.a);
+    return {
+      drive: (reverse ? -1 : 1) * Math.max(.1, Math.cos(delta)),
+      turn: clamp(delta / (TURN * H), -1, 1)
+    };
+  }
+
+  class InputHistory {
+    constructor() {
+      this.lastSample = -Infinity;
+      this.events = [];
+      this.lastSign = 0;
+      this.switches = [];
+      this.lastTap = -Infinity;
+      this.tapInterval = .5;
+      this.lastCell = -1;
+      this.entryCell = -1;
+    }
+
+    read(game, tank, input) {
+      const now = game.time;
+      if (input.press || input.edges?.includes(true)) {
+        const gap = now - this.lastTap;
+        if (gap > .045 && gap < 2) {
+          this.tapInterval = .7 * this.tapInterval + .3 * gap;
+        }
+        this.lastTap = now;
+      }
+
+      const cell = game.maze.cell(tank);
+      if (cell !== this.lastCell) {
+        this.entryCell = this.lastCell;
+        this.lastCell = cell;
+      }
+
+      if (now - this.lastSample < samplePeriod) return;
+      this.lastSample = now;
+      const cmd = copyInput(tank, input);
+      const direction = sign(cmd.drive);
+      if (direction && this.lastSign && direction !== this.lastSign) {
+        this.switches.push(now);
+        if (this.switches.length > 8) this.switches.shift();
+      }
+      if (direction) this.lastSign = direction;
+      this.events.push({ time: now, x: tank.x, y: tank.y, ...cmd });
+      if (this.events.length > 52) this.events.shift();
+    }
+
+    stationary() {
+      if (this.events.length < 5) return false;
+      const latest = this.events.at(-1);
+      const past = this.events.at(-5);
+      return dist(latest, past) < .065;
+    }
+
+    reversalDelay(now) {
+      if (this.switches.length < 3) return Infinity;
+      const intervals = [];
+      for (let i = 1; i < this.switches.length; i++) {
+        intervals.push(this.switches[i] - this.switches[i - 1]);
+      }
+      intervals.sort((a, b) => a - b);
+      const median = intervals[Math.floor(intervals.length / 2)];
+      const recent = now - this.switches.at(-1);
+      if (median > 1.65 || recent > median + .4) return Infinity;
+      return Math.max(.04, median - recent);
+    }
+
+    matchingSuffix() {
+      // Find the most similar previous input sequence for which we have
+      // already observed the next few commands. Useful against rhythmic feints.
+      const data = this.events;
+      const n = data.length;
+      if (n < 13) return null;
+      let best = null;
+      let bestError = .24;
+      for (let end = 3; end < n - 6; end++) {
+        let error = 0;
+        for (let j = 0; j < 4; j++) {
+          const a = data[end - j];
+          const b = data[n - 1 - j];
+          error += Math.abs(a.drive - b.drive) + .5 * Math.abs(a.turn - b.turn);
+        }
+        error /= 4;
+        if (error <= bestError) {
+          bestError = error;
+          best = data.slice(end + 1, Math.min(end + 11, n));
+        }
+      }
+      return best;
+    }
+  }
+
+  class OpponentModel {
+    constructor() {
+      this.history = new InputHistory();
+      this.loss = new Map();
+      this.pending = [];
+      this.nextRecord = 0;
+    }
+
+    observe(game, tank, input) {
+      this.history.read(game, tank, input);
+      while (this.pending.length && this.pending[0].at <= game.time) {
+        const sample = this.pending.shift();
+        for (const entry of sample.guesses) {
+          const error = Math.min(2, dist(entry.p, tank));
+          const previous = this.loss.get(entry.key) ?? .42;
+          this.loss.set(entry.key, .8 * previous + .2 * error);
+        }
+      }
+    }
+
+    options(game, tank, input, me) {
+      const cmd = copyInput(tank, input);
+      const reverse = -Math.sign(cmd.drive || this.history.lastSign || 1);
+      const options = [];
+      const constant = control => () => control;
+      const add = (key, prior, policy, delay = 0) => {
+        options.push({ key, prior, policy, delay });
+      };
+
+      const recent = this.history.events.slice(-5);
+      const stable = recent.length >= 4 && recent.every(e => sign(e.drive) === sign(cmd.drive) &&
+        Math.abs(e.turn - cmd.turn) < .30);
+      add('continue', stable ? .93 : .63, constant(cmd));
+      add('stop', this.history.stationary() ? .32 : .09,
+        constant({ drive: 0, turn: 0 }), .12);
+      add('straight', .11, constant({ drive: cmd.drive, turn: 0 }), .12);
+      add('reverse', .10, constant({ drive: reverse, turn: 0 }), .20);
+
+      for (const turn of [-1, 1]) {
+        add('arc' + turn, .055, constant({ drive: cmd.drive || 1, turn }), .20);
+        add('pivot' + turn, .03, (p, time) => ({
+          drive: time < .38 ? 0 : 1,
+          turn: time < .38 ? turn : 0
+        }), .10);
+      }
+
+      const cadence = this.history.reversalDelay(game.time);
+      if (Number.isFinite(cadence)) {
+        add('rhythm', .23, constant({ drive: reverse, turn: cmd.turn }), cadence);
+      }
+
+      const suffix = this.history.matchingSuffix();
+      if (suffix) {
+        add('replay', .18, (p, time) => {
+          const i = Math.min(suffix.length - 1, Math.floor(time / samplePeriod));
+          const action = suffix[i];
+          return { drive: action.drive, turn: action.turn };
+        });
+      }
+
+      const maze = game.maze;
+      const cell = maze.cell(tank);
+      const exits = maze.links[cell];
+      for (const n of exits) {
+        const target = maze.center(n);
+        const returning = n === this.history.entryCell;
+        const delta = angleDiff(bearing(tank, target), tank.a);
+        const backing = Math.abs(delta) > 2.1 && cmd.drive < 0;
+        add('exit' + (n - cell), returning ? .04 : .085, p => follow(p, target, backing), .14);
+      }
+
+      if (dist(tank, me) < 3.4) {
+        add('kite', .13, p => {
+          const a = bearing(p, me);
+          return {
+            drive: -1,
+            turn: clamp(angleDiff(a, p.a) / (TURN * H), -1, 1)
+          };
+        }, .12);
+      }
+
+      const pickup = !tank.item && game.items.find(item => dist(item, tank) < 2.8);
+      if (pickup) {
+        const route = maze.route(cell, maze.cell(pickup));
+        const waypoint = maze.visible(tank, pickup, BODY)
+          ? pickup : maze.center(route[0] ?? cell);
+        add('item', .15, p => follow(p, waypoint, false), .12);
+      }
+      return { options, cmd };
+    }
+
+    predict(game, tank, input, me) {
+      const { options, cmd } = this.options(game, tank, input, me);
+      const raw = [];
+      for (const spec of options) {
+        const loss = this.loss.get(spec.key) ?? .42;
+        const weight = Math.max(weightFloor, spec.prior * Math.exp(-2.3 * loss));
+        const p = pose(tank);
+        const line = [pose(p)];
+        for (let j = 0; j < lookahead; j++) {
+          const time = j * H;
+          const action = time < spec.delay ? cmd : spec.policy(p, time - spec.delay);
+          advance(game, p, action, H);
+          line.push(pose(p));
+        }
+        raw.push({ key: spec.key, weight, line });
+      }
+
+      if (game.time >= this.nextRecord) {
+        this.nextRecord = game.time + .20;
+        for (const delay of [.36, .84]) {
+          const guesses = raw.map(f => ({ key: f.key, p: positionAt(f.line, delay) }));
+          this.pending.push({ at: game.time + delay, guesses });
+        }
+        this.pending.sort((a, b) => a.at - b.at);
+      }
+
+      // Merge trajectories that are physically identical, for example eight
+      // different key sequences applied while wedged against the same wall.
+      const unique = [];
+      for (const f of raw) {
+        const match = unique.find(u => (
+          dist(f.line[4], u.line[4]) < .09 &&
+          dist(f.line[8], u.line[8]) < .14 &&
+          dist(f.line[14], u.line[14]) < .20
+        ));
+        if (match) match.weight += f.weight;
+        else unique.push(f);
+      }
+      unique.sort((a, b) => b.weight - a.weight);
+      const kept = unique.slice(0, 9);
+      const sum = kept.reduce((s, f) => s + f.weight, 0);
+      for (const f of kept) f.weight /= sum;
+      return kept;
+    }
+  }
+
+  global.TankOpponentModel = OpponentModel;
+})(globalThis);
+
+</script>
+<script>
+/* Topology is computed once per arena. The tactical objective is deliberately
+   slower-changing than the dodge controller, so a near miss does not continually
+   reverse the route at the next junction. */
+(function (global) {
+  'use strict';
+  const { BODY, dist, clamp, angleDiff } = TankArena;
+  const { bearing, walkable, routeInfo, itemValue } = TankTactics;
+
+  class MazeAtlas {
+    constructor(maze) {
+      this.maze = maze;
+      this.count = maze.links.length;
+      this.centers = maze.links.map((_, i) => maze.center(i));
+      this.distances = [];
+      for (let i = 0; i < this.count; i++) this.distances.push(this.flood(i));
+      this.depth = this.deadEnds();
+      this.lastVisible = new Map();
+    }
+
+    flood(start) {
+      const cost = new Int16Array(this.count).fill(-1);
+      const queue = [start];
+      cost[start] = 0;
+      for (let index = 0; index < queue.length; index++) {
+        const current = queue[index];
+        for (const next of this.maze.links[current]) {
+          if (cost[next] >= 0) continue;
+          cost[next] = cost[current] + 1;
+          queue.push(next);
+        }
+      }
+      return cost;
+    }
+
+    deadEnds() {
+      const links = this.maze.links;
+      const depth = new Uint8Array(this.count);
+      for (let i = 0; i < this.count; i++) {
+        if (links[i].length !== 1) continue;
+        const chain = [i];
+        let previous = i;
+        let next = links[i][0];
+        while (links[next].length === 2 && chain.length < this.count) {
+          chain.push(next);
+          const onward = links[next].find(n => n !== previous);
+          previous = next;
+          next = onward;
+        }
+        for (let j = 0; j < chain.length; j++) {
+          const cell = chain[j];
+          depth[cell] = Math.max(depth[cell], chain.length - j);
+        }
+      }
+      return depth;
+    }
+
+    range(start, end) {
+      return this.distances[start][end];
+    }
+
+    cellSight(a, b) {
+      const key = Math.min(a, b) * this.count + Math.max(a, b);
+      if (!this.lastVisible.has(key)) {
+        this.lastVisible.set(key, this.maze.visible(this.centers[a], this.centers[b], .035));
+      }
+      return this.lastVisible.get(key);
+    }
+
+    eta(tank, goal) {
+      const start = this.maze.cell(tank);
+      const end = this.maze.cell(goal);
+      if (start === end || this.maze.visible(tank, goal, BODY)) {
+        return dist(tank, goal) / 2.02;
+      }
+      const first = this.maze.links[start].reduce((best, cell) => {
+        return this.range(cell, end) < this.range(best, end) ? cell : best;
+      });
+      const heading = Math.abs(angleDiff(bearing(tank, this.centers[first]), tank.a));
+      const rotation = Math.min(heading, Math.PI - heading) / 3.65;
+      return (dist(tank, this.centers[first]) + this.range(first, end) +
+        dist(this.centers[end], goal)) / 2.02 + rotation * .55;
+    }
+
+    options(start, radius) {
+      const cells = [];
+      for (let i = 0; i < this.count; i++) {
+        if (this.range(start, i) <= radius) cells.push(i);
+      }
+      return cells;
+    }
+  }
+
+  class PositionPlanner {
+    constructor(maze) {
+      this.atlas = new MazeAtlas(maze);
+      this.goal = null;
+      this.until = 0;
+      this.visits = new Float64Array(maze.links.length).fill(-100);
+      this.lastCell = -1;
+      this.watch = null;
+      this.stallUntil = -1;
+      this.detour = -1;
+    }
+
+    observe(game, me) {
+      const cell = game.maze.cell(me);
+      if (cell !== this.lastCell) {
+        this.visits[cell] = game.time;
+        this.lastCell = cell;
+      }
+      if (!this.watch || dist(me, this.watch) > .30) {
+        this.watch = { x: me.x, y: me.y, at: game.time };
+      }
+    }
+
+    enemyPressure(game, enemy, pos) {
+      if (!enemy.alive) return 0;
+      const visible = game.maze.visible(enemy, pos, .025);
+      if (!visible) return 0;
+      const gap = dist(enemy, pos);
+      const turn = Math.abs(angleDiff(bearing(enemy, pos), enemy.a));
+      const capacity = 5 - game.count(enemy.id);
+      const armed = enemy.item && enemy.item !== 'shield';
+      if (!capacity && !armed) return 0;
+      const multiplier = enemy.item === 'laser' ? 1.8 : 1;
+      return multiplier * Math.max(0, 1 - gap / 6) * (1.4 - .7 * Math.min(turn, 1.5));
+    }
+
+    pickup(game, me, enemy) {
+      if (me.item || !enemy.alive) return null;
+      let best = null;
+      const atlas = this.atlas;
+      for (const item of game.items) {
+        const eta = atlas.eta(me, item);
+        if (eta + .20 >= item.until - game.time) continue;
+        const enemyEta = atlas.eta(enemy, item);
+        const contested = !enemy.item && enemyEta + .20 < eta;
+        const pressure = this.enemyPressure(game, enemy, item);
+        const shield = item.kind === 'shield' && game.bullets.length >= 3;
+        const denial = item.kind === 'laser' && !enemy.item && enemyEta < 4.5 &&
+          eta < enemyEta + .35 ? 2.45 : 0;
+        const bonus = (shield ? .85 : 0) + denial;
+        const risk = atlas.depth[game.maze.cell(item)] * .12;
+        const value = itemValue[item.kind] + bonus - eta * 1.04 - pressure * 1.15 -
+          risk - (contested ? Math.min(3, (eta - enemyEta) * 1.4) : 0);
+        if (!best || value > best.value) {
+          best = { kind: 'pickup', target: item, value };
+        }
+      }
+      return best;
+    }
+
+    refuge(game, me, enemy) {
+      const atlas = this.atlas;
+      const maze = game.maze;
+      const here = maze.cell(me);
+      const there = maze.cell(enemy);
+      let best = null;
+      for (const cell of atlas.options(here, 4)) {
+        const p = atlas.centers[cell];
+        const travel = atlas.range(here, cell);
+        const cover = !atlas.cellSight(cell, there);
+        const score = (cover ? 2.3 : 0) + Math.min(atlas.range(cell, there), 6) * .4 +
+          maze.links[cell].length * .30 - travel * .31 - atlas.depth[cell] * .48 -
+          this.enemyPressure(game, enemy, p);
+        if (!best || score > best.value) best = { kind: 'retreat', target: p, value: score };
+      }
+      return best;
+    }
+
+    intercept(game, me, enemy, forecasts) {
+      const atlas = this.atlas;
+      const maze = game.maze;
+      const here = maze.cell(me);
+      const there = maze.cell(enemy);
+      const remaining = atlas.range(here, there);
+      if (remaining < 2 || remaining > 11) return null;
+      const likely = forecasts[0]?.line[9] || enemy;
+      const future = maze.cell(likely);
+      let best = null;
+      for (const cell of atlas.options(here, 3)) {
+        if (cell === here || cell === there) continue;
+        const travel = atlas.range(here, cell);
+        const after = atlas.range(cell, future);
+        if (after >= remaining || after > 5) continue;
+        if (!atlas.cellSight(cell, future)) continue;
+        const p = atlas.centers[cell];
+        const flank = Math.abs(angleDiff(bearing(enemy, p), enemy.a));
+        const legs = maze.links[cell].length;
+        const value = 1.65 + Math.min(1.6, flank) * .38 + Math.min(legs, 3) * .18 -
+          travel * .36 - after * .11 - atlas.depth[cell] * .24;
+        if (!best || value > best.value) best = { kind: 'intercept', target: p, value };
+      }
+      return best;
+    }
+
+    unstick(game, me, enemy, canShoot) {
+      if (canShoot) {
+        this.watch = { x: me.x, y: me.y, at: game.time };
+        return null;
+      }
+      const maze = game.maze;
+      const cell = maze.cell(me);
+      if (game.time < this.stallUntil && this.detour !== cell) {
+        return { kind: 'reposition', target: this.atlas.centers[this.detour], value: 3 };
+      }
+      if (game.time - this.watch.at < 1.7) return null;
+      const there = maze.cell(enemy);
+      const neighbors = maze.links[cell];
+      let best = null;
+      for (const n of neighbors) {
+        const revisited = Math.max(0, 3 - (game.time - this.visits[n]));
+        const score = -this.atlas.range(n, there) * .38 - revisited +
+          (walkable(maze, me, this.atlas.centers[n]) ? .9 : 0);
+        if (!best || score > best.score) best = { n, score };
+      }
+      this.watch = { x: me.x, y: me.y, at: game.time };
+      this.detour = best.n;
+      this.stallUntil = game.time + .85;
+      return { kind: 'reposition', target: this.atlas.centers[best.n], value: 3 };
+    }
+
+    select(game, me, enemy, forecasts, shot) {
+      this.observe(game, me);
+      const ammo = 5 - game.count(me.id);
+      const special = me.item && me.item !== 'shield';
+      const killWindow = shot && shot.value > .74;
+      let target = null;
+      const item = enemy.alive ? this.pickup(game, me, enemy) : null;
+      if (item && ['laser','shield'].includes(item.target.kind) && item.value > 1.6 &&
+          !(killWindow && shot.impact < .52 && shot.kill > .68)) {
+        target = item;
+      } else if (!enemy.alive || (!special && ammo < 2 && dist(me, enemy) < 4)) {
+        target = this.refuge(game, me, enemy);
+      } else {
+        if (item && item.value > (killWindow ? 2.7 : .65)) target = item;
+        if (!target && !shot?.viable) target = this.unstick(game, me, enemy, false);
+        if (!target && shot?.viable) this.unstick(game, me, enemy, true);
+        if (!target && !game.maze.visible(me, enemy) && !shot?.viable) {
+          if (this.goal?.kind === 'intercept' && game.time < this.until &&
+            dist(me, this.goal.target) > .32) {
+            target = this.goal;
+          } else {
+            const intercept = this.intercept(game, me, enemy, forecasts);
+            if (intercept && intercept.value > .95) {
+              target = intercept;
+              this.until = game.time + .48;
+            }
+          }
+        }
+      }
+      if (!target) target = { kind: 'advance', target: enemy };
+      this.goal = target;
+      const mines = game.mines.filter(m => m.armed);
+      const route = routeInfo(game.maze, me, target.target, mines);
+      return { p: route.next, type: target.kind, target: target.target };
+    }
+  }
+
+  global.TankPositionPlanner = PositionPlanner;
+})(globalThis);
+
+</script>
+<script>
+/* Projectile planning shares the wall cast and beam trace with the arena.
+   Scores describe a proposed shot, never a command to move the turret for free. */
+(function (global) {
+  'use strict';
+  const { BODY, SHOT, dist, clamp, angleDiff } = TankArena;
+  const { H, SPEED, TURN, pose, bearing, flight, along, advance, positionAt } = TankTactics;
+  const reach = BODY + SHOT;
+  const horizon = 2.12;
+
+  function segmentGap(x, y, dx, dy) {
+    const u = clamp(-(x * dx + y * dy) / (dx * dx + dy * dy || 1), 0, 1);
+    return Math.hypot(x + u * dx, y + u * dy);
+  }
+
+  // A segment of a forecast tank path and a segment of shell flight must
+  // overlap in time as well as space. This catches fast crossings between ticks.
+  function crossing(line, path, speed, duration, delay) {
+    let nearestSq = Infinity;
+    let time = Infinity;
+    let contact = Infinity;
+    let banks = 0;
+    for (let i = 0; i < path.length; i++) {
+      const s = path[i];
+      const start = s.start / speed;
+      const stop = Math.min(s.end / speed, duration);
+      if (stop <= start) continue;
+      const first = Math.floor((start + delay) / H);
+      const last = Math.min(line.length - 1, Math.ceil((stop + delay) / H));
+      for (let j = first; j < last; j++) {
+        const lo = Math.max(start, j * H - delay);
+        const hi = Math.min(stop, (j + 1) * H - delay);
+        if (hi <= lo) continue;
+        const a = line[j], b = line[j + 1];
+        const fx = b.x - a.x, fy = b.y - a.y;
+        const fraction = (lo + delay) / H - j;
+        const x = s.x + s.dx * (lo * speed - s.start) - a.x - fx * fraction;
+        const y = s.y + s.dy * (lo * speed - s.start) - a.y - fy * fraction;
+        const dt = hi - lo;
+        const dx = (s.dx * speed - fx / H) * dt;
+        const dy = (s.dy * speed - fy / H) * dt;
+        const u = clamp(-(x * dx + y * dy) / (dx * dx + dy * dy || 1), 0, 1);
+        const gapX = x + u * dx, gapY = y + u * dy;
+        const d2 = gapX * gapX + gapY * gapY;
+        if (d2 < nearestSq) {
+          nearestSq = d2;
+          time = lo + u * dt;
+          banks = i;
+        }
+        if (d2 <= reach*reach && !Number.isFinite(contact)) contact = lo + u * dt;
+      }
+    }
+    return { nearest: Math.sqrt(nearestSq), time, contact, banks };
+  }
+
+  function returnTime(shooter, path, speed) {
+    let earliest = Infinity;
+    for (let i = 1; i < path.length; i++) {
+      const s = path[i];
+      const deltaX = shooter.x - s.x;
+      const deltaY = shooter.y - s.y;
+      const projection = deltaX * s.dx + deltaY * s.dy;
+      const d = clamp(projection, 0, s.end - s.start);
+      if (Math.hypot(deltaX - d * s.dx, deltaY - d * s.dy) <= reach + .028) {
+        earliest = (s.start + d) / speed;
+        break;
+      }
+    }
+    return earliest;
+  }
+
+  function shotSpeed(item) {
+    if (item === 'rapid') return 4.65;
+    if (item === 'seeker') return 2.65;
+    return SPEED;
+  }
+
+  class AimAngles {
+    constructor() {
+      this.values = [];
+      this.keys = new Set();
+    }
+
+    add(a) {
+      const wrapped = Math.atan2(Math.sin(a), Math.cos(a));
+      const key = Math.round(wrapped * 260);
+      if (this.keys.has(key)) return;
+      this.keys.add(key);
+      this.values.push(wrapped);
+    }
+
+    intercept(me, forecast, speed, instant) {
+      let time = instant ? 0 : dist(me, forecast.line[0]) / speed;
+      // Fixed-point interception includes time spent turning the tank.
+      // Three iterations are sufficient at arena tank-to-projectile speeds.
+      for (let i = 0; i < 3; i++) {
+        const p = positionAt(forecast.line, Math.min(2.12, time));
+        const turn = Math.abs(angleDiff(bearing(me, p), me.a)) / TURN;
+        time = (instant ? 0 : dist(me, p) / speed) + Math.min(.50, turn);
+      }
+      return positionAt(forecast.line, time);
+    }
+
+    faces(maze, me, radius, limit) {
+      const surfaces = new Map();
+      for (const w of maze.walls) {
+        const x = clamp(me.x, w.x1, w.x2);
+        const y = clamp(me.y, w.y1, w.y2);
+        const distance = Math.hypot(x - me.x, y - me.y);
+        if (distance > limit) continue;
+        const vertical = w.x2 - w.x1 < w.y2 - w.y1;
+        const v = vertical
+          ? (me.x < w.x1 ? w.x1 - radius : w.x2 + radius)
+          : (me.y < w.y1 ? w.y1 - radius : w.y2 + radius);
+        const key = (vertical ? 'x' : 'y') + v;
+        const old = surfaces.get(key);
+        if (!old || distance < old.distance) surfaces.set(key, { vertical, v, distance });
+      }
+      return [...surfaces.values()].sort((a, b) => a.distance - b.distance).slice(0, 10);
+    }
+
+    mirror(p, face) {
+      return face.vertical
+        ? { x: 2 * face.v - p.x, y: p.y }
+        : { x: p.x, y: 2 * face.v - p.y };
+    }
+
+    build(game, me, foe, forecasts, last) {
+      const laser = me.item === 'laser';
+      const speed = shotSpeed(me.item);
+      const m = game.maze;
+      const first = this.intercept(me, forecasts[0], speed, laser);
+      this.add(me.a);
+      if (last) this.add(last.a);
+      this.add(bearing(me, foe));
+      for (const f of forecasts) {
+        this.add(bearing(me, this.intercept(me, f, speed, laser)));
+      }
+      for (const cell of m.links[m.cell(foe)]) this.add(bearing(me, m.center(cell)));
+      const faces = this.faces(m, me, laser ? 0 : SHOT, laser ? 6.5 : 4.5);
+      const targets = [first, foe];
+      for (const face of faces) {
+        for (const p of targets) {
+          const image = this.mirror(p, face);
+          if (dist(me, image) <= (laser ? 18 : horizon * speed)) this.add(bearing(me, image));
+        }
+      }
+      // Enumerate nearby two-wall image solutions. Verification uses the real
+      // wall segments, which reject spurious solutions from infinite mirrors.
+      if (laser || !m.visible(me, foe)) {
+        for (const f of faces.slice(0, 5)) for (const q of faces.slice(0, 5)) {
+          if (q === f) continue;
+          const image = this.mirror(this.mirror(first, q), f);
+          if (dist(me, image) <= (laser ? 15 : 7.4)) this.add(bearing(me, image));
+        }
+      }
+      return this.values;
+    }
+  }
+
+  class FireControl {
+    constructor() {
+      this.last = null;
+      this.nextSnap = 0;
+      this.nextTap = 0;
+      this.burstUntil = 0;
+      this.ordnance = new TankOrdnance();
+      this.lastTap = null;
+    }
+
+    cover(game, me, forecasts) {
+      for (const f of forecasts) f.coverage = 0;
+      for (const b of game.bullets) {
+        if (b.owner !== me.id || !['regular','triple','rapid','fragment'].includes(b.kind)) continue;
+        const duration = Math.min(1.45, b.life - b.age);
+        if (duration <= 0) continue;
+        const path = flight(game.maze, b, Math.atan2(b.dy, b.dx), b.speed * duration,
+          SHOT, 6, b.kind === 'fragment');
+        for (const f of forecasts) {
+          const result = crossing(f.line, path, b.speed, duration, 0);
+          const likelihood = clamp((.39 - result.nearest) / .21, 0, 1);
+          f.coverage = Math.max(f.coverage, likelihood);
+        }
+      }
+    }
+
+    laser(game, me, foe, a) {
+      const from = { ...me, a };
+      const length = Math.hypot(game.maze.cols, game.maze.rows) * 8;
+      const lines = game.laserPath(from, length, true);
+      const end = lines.at(-1);
+      if (!end) return { value: -1 };
+      const point = { x: end[2], y: end[3] };
+      const hit = dist(point, foe) <= BODY + .001;
+      const self = dist(point, me) <= BODY + .001;
+      return {
+        value: hit && !self ? 1.85 : -.20,
+        impact: 0,
+        banks: lines.length - 1,
+        kill: hit && !self ? 1 : 0,
+        selfTime: self ? 0 : Infinity
+      };
+    }
+
+    lane(game, me, forecasts, a, item) {
+      const speed = shotSpeed(item);
+      const duration = item === 'frag' ? 1.1 : horizon;
+      const path = flight(game.maze, me, a, duration * speed, SHOT, 7);
+      const firstReturn = returnTime(me, path, speed);
+      const delay = Math.min(.52, Math.abs(angleDiff(a, me.a)) / TURN);
+      const epicenter = item === 'frag' ? along(path, duration * speed) : null;
+      let value = 0, kill = 0, impact = Infinity, banks = 0;
+      for (const f of forecasts) {
+        const r = crossing(f.line, path, speed, duration, delay);
+        let likelihood = clamp((.45 - r.nearest) / .255, 0, 1);
+        const alreadyHit = r.contact < firstReturn;
+        if (firstReturn < .33 && !alreadyHit) likelihood = 0;
+        if (epicenter) {
+          const enemyAtFuse = positionAt(f.line, duration + delay);
+          const gap = dist(epicenter, enemyAtFuse);
+          if (gap < 1.2 && game.maze.visible(epicenter, enemyAtFuse)) {
+            likelihood = Math.max(likelihood, .82 * (1 - gap / 1.4));
+          }
+        }
+        const hitTime = Number.isFinite(r.time) ? r.time : duration;
+        const pressure = 1 - .17 * Math.min(hitTime, 2);
+        const fresh = 1 - .72 * (f.coverage || 0);
+        value += f.weight * likelihood * fresh * pressure;
+        kill += f.weight * (alreadyHit ? 1 : 0);
+        if (likelihood > .65 && hitTime < impact) {
+          impact = hitTime;
+          banks = r.banks;
+        }
+      }
+      if (firstReturn < .35 && kill < .66) value -= 1;
+      else if (firstReturn < 1.25) value -= .18 * (1.25 - firstReturn) * (1 - kill);
+      return { value, kill, impact, banks, selfTime: firstReturn, path };
+    }
+
+    spread(game, me, forecasts, a) {
+      const delay=Math.abs(angleDiff(a,me.a))/TURN;
+      const barrels=[-.18,0,.18].map(offset=>{
+        const path=flight(game.maze,me,a+offset,SPEED*horizon,SHOT,7);
+        return {path,back:returnTime(me,path,SPEED)};
+      });
+      let value=0,kill=0,impact=Infinity,banks=0;
+      for (const f of forecasts) {
+        let chance=0,first=Infinity;
+        for (const barrel of barrels) {
+          const r=crossing(f.line,barrel.path,SPEED,Math.min(horizon,barrel.back),delay);
+          chance=Math.max(chance,clamp((.43-r.nearest)/.23,0,1));
+          first=Math.min(first,r.contact);
+          if (r.contact<impact) { impact=r.contact; banks=r.banks; }
+        }
+        if (Number.isFinite(first)) kill+=f.weight;
+        value+=f.weight*chance*(1-.45*(f.coverage||0))*(1-.14*Math.min(2,first));
+      }
+      const selfTime=Math.min(...barrels.map(b=>b.back));
+      if (selfTime<.30) value-=.9;
+      return {value,kill,impact,banks,selfTime,weapon:'triple',a};
+    }
+
+    seeker(game, me, foe, forecasts, a) {
+      const launch = flight(game.maze, me, a, .8 * 2.65, SHOT, 5);
+      const end = along(launch, .8 * 2.65);
+      if (!end) return { value: -1 };
+      const returnAt = returnTime(me, launch, 2.65);
+      const foePosition = positionAt(forecasts[0].line, .8);
+      const chase = dist(end, me) - dist(end, foePosition);
+      const cell = game.maze.cell(end);
+      const hops = game.maze.route(cell, game.maze.cell(foePosition)).length;
+      const value = returnAt < .76 ? -1 :
+        .38 + clamp(chase * .23, -.67, .50) - Math.max(0, hops - 3) * .045;
+      return { value, kill: 0, impact: .8, banks: launch.length - 1, selfTime: returnAt, path: launch };
+    }
+
+    aim(game, me, foe, forecasts) {
+      if (!foe.alive || !forecasts.length || me.item === 'mine') return null;
+      const weapon = me.item === 'shield' ? null : me.item;
+      const ammo = 5 - game.count(me.id);
+      if ((!weapon && !ammo) || dist(me, foe) > (weapon === 'laser' ? 17 : 10.2)) return null;
+      this.cover(game, me, forecasts);
+      const angles = new AimAngles();
+      const candidates = angles.build(game, me, foe, forecasts, this.last);
+      if (weapon === 'laser') {
+        // A long reflected beam can reach rooms outside the two-image search.
+        // Sweep continuously around the actual heading and verify each ray.
+        const phase = (Math.floor(game.time*14) % 3)/3;
+        for (let i=-45;i<=45;i++) angles.add(me.a+(i+phase)*Math.PI/45);
+      }
+      let best = null;
+      const tried = [];
+      const evaluate = a => {
+        let result;
+        if (weapon === 'laser') result = this.laser(game, me, foe, a);
+        else if (weapon === 'seeker') result = this.seeker(game, me, foe, forecasts, a);
+        else result = this.lane(game, me, forecasts, a, weapon);
+        const turn = Math.abs(angleDiff(a, me.a));
+        const rank = result.value - turn * .16;
+        const shot = { ...result, a, rank, weapon, viable: rank > .24 };
+        tried.push(shot);
+        if (!best || rank > best.rank) best = shot;
+      };
+      for (const a of candidates) evaluate(a);
+      if (weapon === 'triple') {
+        const centers=new AimAngles();
+        const top=[...tried].sort((x,y)=>y.rank-x.rank).slice(0,5);
+        for (const s of top) for (const offset of [-.18,0,.18]) centers.add(s.a+offset);
+        tried.length=0;
+        best=null;
+        for (const a of centers.values) {
+          const shot=this.spread(game,me,forecasts,a);
+          shot.rank=shot.value-.16*Math.abs(angleDiff(a,me.a));
+          shot.viable=shot.rank>.24;
+          tried.push(shot);
+          if (!best || shot.rank>best.rank) best=shot;
+        }
+      } else if (weapon !== 'laser' && weapon !== 'seeker' && best.value > .11) {
+        const center = best.a;
+        const delta = clamp(.13 / Math.max(1, dist(me, foe)), .012, .065);
+        evaluate(center - delta);
+        evaluate(center + delta);
+      }
+      this.finalists = tried;
+      this.last = best;
+      return best;
+    }
+
+    canEscape(game, me, launchPose, cmd, shot, opponent) {
+      if (shot.weapon === 'laser') return this.laser(game, launchPose, opponent, launchPose.a).kill === 1;
+      const speed = shotSpeed(shot.weapon);
+      const angles = shot.weapon === 'triple' ? [-.18, 0, .18] : [0];
+      for (const angle of angles) {
+        const path = flight(game.maze, launchPose, launchPose.a + angle, speed * 1.18, SHOT, 7);
+        const p = pose(launchPose);
+        let last = { ...p };
+        let armed = false;
+        for (let i = 1; i <= 14; i++) {
+          const time = i * .08;
+          const at = along(path, time * speed);
+          if (!at) break;
+          // Past a likely impact the returning shell usually no longer exists.
+          if (shot.weapon !== 'triple' && shot.kill > .92 && time > shot.impact + .10) break;
+          const begin = (time - .08) * speed;
+          advance(game, p, cmd, .08);
+          for (const part of path) {
+            const from = Math.max(begin, part.start);
+            const to = Math.min(time * speed, part.end);
+            if (to <= from) continue;
+            const lo = (from - begin) / (.08 * speed);
+            const hi = (to - begin) / (.08 * speed);
+            const sx = last.x + (p.x - last.x) * lo;
+            const sy = last.y + (p.y - last.y) * lo;
+            const bx = part.x + part.dx * (from - part.start);
+            const by = part.y + part.dy * (from - part.start);
+            const dx = (p.x - last.x) * (hi - lo) - part.dx * (to - from);
+            const dy = (p.y - last.y) * (hi - lo) - part.dy * (to - from);
+            if (part.bounced || Math.hypot(sx-bx,sy-by) > reach + .001) armed = true;
+            if (armed && part.bounced && segmentGap(sx-bx,sy-by,dx,dy) < reach + .025) return false;
+          }
+          last = { ...p };
+        }
+      }
+      return true;
+    }
+
+    opportunistic(game, real, enemy, forecasts, weapon) {
+      if (weapon === 'mine' || weapon === 'seeker' || !forecasts.length) return null;
+      if (game.time < this.nextSnap) return null;
+      this.nextSnap = game.time + .034;
+      const shot = this.lane(game, real, forecasts, real.a, weapon);
+      const close = dist(real, enemy) < 2.7;
+      const reserve = 5 - game.count(real.id);
+      const intercept = game.time > 12 && shot.kill >= .70 && shot.impact < 1.35;
+      const cutoff = intercept ? .36 : close ? .39 : reserve > 2 ? .58 : .77;
+      if (shot.value < cutoff || shot.kill < (close ? .36 : .52)) return null;
+      // Firing while turning is worthwhile if there is an opening now. Keep
+      // the chosen aim for the next shot, since it may cover a different exit.
+      return { ...shot, a: real.a, weapon };
+    }
+
+    fragmentClear(game, me, foe, cmd, shot) {
+      const near = dist(me, foe);
+      if (near < .78 && game.maze.visible(me, foe)) return false;
+      const at = Math.min(1.1, shot.kill > .38 ? shot.impact : 1.1);
+      const path = flight(game.maze, me, me.a, SPEED * at, SHOT, 5);
+      const burst = along(path, SPEED * at);
+      if (!burst) return true;
+      const p = pose(me);
+      const steps = Math.max(1, Math.ceil(at / .1));
+      for (let i = 0; i < steps; i++) advance(game, p, cmd, at / steps);
+      if (!game.maze.visible(p, burst)) return true;
+      return dist(p, burst) > .72;
+    }
+
+    beamTap(game, me, foe, enemyInput, dt, cmd, shot) {
+      // The arena moves BOTH tanks before resolving the beam. Trace copies in
+      // that order. Each candidate is a single reachable steering input.
+      const enemy = { ...foe };
+      game.move(enemy,enemyInput,dt);
+      const trial = Object.create(game);
+      trial.tanks = game.tanks.slice();
+      trial.tanks[foe.id] = enemy;
+      const turns = [cmd.turn];
+      if (shot?.kill) turns.push(clamp(angleDiff(shot.a,me.a)/(TURN*dt),-1,1));
+      turns.push(0,-1,1,-.5,.5);
+      for (const turn of new Set(turns)) {
+        const real = { ...me };
+        game.move(real,{drive:cmd.drive,turn},dt);
+        trial.tanks[me.id] = real;
+        if (!this.laser(trial,real,enemy,real.a).kill) continue;
+        cmd.turn=turn;
+        return real;
+      }
+      return null;
+    }
+
+    trigger(game, me, foe, dt, cmd, shot, forecasts, policy, enemyInput = {}) {
+      if (!foe.alive) return;
+      if (me.rapid) {
+        cmd.held = game.time < this.burstUntil && this.ordnance.sweepSafe(game, me, cmd, foe);
+        return;
+      }
+      if (game.time < this.nextTap && (!policy.follow || game.time - (this.lastTap?.at ?? 0) < .083)) return;
+      if (me.item === 'mine' && this.ordnance.evaluateMine(game, me, foe, cmd, forecasts)) {
+        cmd.press = 1;
+        cmd.held = true;
+        this.nextTap = game.time + .13;
+        return;
+      }
+      const weapon = me.item === 'shield' ? null : me.item;
+      const ammo = 5 - game.count(me.id);
+      if (!weapon && !ammo) return;
+      if (shot?.followup && game.time < shot.earliest) return;
+      if (weapon === 'laser') {
+        const real = this.beamTap(game,me,foe,enemyInput,dt,cmd,shot);
+        if (real) {
+          cmd.press = 1;
+          cmd.held = true;
+          this.lastTap = { at:game.time, angle:real.a, weapon };
+          this.nextTap = game.time + policy.interval;
+        }
+        return;
+      }
+      const real = { ...me };
+      game.move(real, cmd, dt);
+      const gap = dist(me, foe);
+      const tolerance = clamp(.18 / Math.max(1, gap), .027, .12);
+      if (!shot || shot.weapon !== weapon || Math.abs(angleDiff(real.a, shot.a)) > tolerance) {
+        shot = this.opportunistic(game, real, foe, forecasts, weapon);
+        if (!shot) return;
+      }
+      if (weapon === 'frag' && !this.fragmentClear(game, real, foe, cmd, shot)) return;
+      let threshold = .31 + Math.max(0, gap - 2) * .025 + (5 - ammo) * .068;
+      if (ammo === 1) threshold += .17;
+      if (weapon && weapon !== 'laser') threshold = .39;
+      if (foe.item === 'shield' && ammo > 2) threshold -= .075;
+      if (weapon === 'seeker') threshold = .39;
+      if (shot.followup && ammo > 1) threshold = Math.min(threshold, .34);
+      // One expendable slot is worth less than an immediate intercept, but
+      // keep it when several guesses merely pass near the enemy. Recovering
+      // a slot soon makes a speculative fourth shot less expensive.
+      if (!weapon && ammo <= 2 && game.time > 12) {
+        const expires = game.bullets.reduce((t,b)=>b.owner===me.id && b.kind==='regular'
+          ? Math.min(t,b.life-b.age) : t, Infinity);
+        if (shot.kill >= .68 && shot.impact < 1.4) threshold = Math.min(threshold,.39);
+        else if (expires > 1.3 && shot.kill < .37) threshold += .23;
+      }
+      if (shot.value < threshold + policy.threshold) return;
+      if (weapon === 'seeker' && !this.ordnance.guidedLaunch(game, me, foe, cmd, shot, forecasts[0])) return;
+      if (!this.canEscape(game, me, real, cmd, shot, foe)) return;
+      cmd.press = 1;
+      cmd.held = true;
+      if (weapon === 'rapid') this.burstUntil = game.time + (gap < 2.4 ? .95 : 1.45);
+      this.nextTap = game.time + policy.interval;
+      this.lastTap = { at: game.time, angle: real.a, weapon };
+    }
+  }
+
+  global.TankShotGeometry = { crossing };
+  global.TankFireControl = FireControl;
+})(globalThis);
+
+</script>
+<script>
+/* Time-indexed danger. A route is scored against the time a shell crosses a
+   tile, not a permanently blocked tile. Threats from either tank remain in
+   this field throughout the 2.5-second settlement. */
+(function (global) {
+  'use strict';
+
+  const { BODY, SHOT, clamp, dist, angleDiff } = TankArena;
+  const { H, hazards, flight, bearing, positionAt } = TankTactics;
+  const contact = BODY + SHOT;
+  const margin = .53;
+
+  function separation(x, y, dx, dy) {
+    const projection = -(x * dx + y * dy);
+    const length = dx * dx + dy * dy;
+    const f = length ? clamp(projection / length, 0, 1) : 0;
+    return Math.hypot(x + dx * f, y + dy * f);
+  }
+
+  class ThreatField {
+    constructor(game, tank, opponent, input, forecasts, steps) {
+      this.game = game;
+      this.tank = tank;
+      this.foe = opponent;
+      this.steps = steps;
+      this.mines = game.mines;
+      this.foeForecast = forecasts[0]?.line;
+      this.laser = opponent.alive && opponent.item === 'laser';
+      this.ready = opponent.alive && (game.count(opponent.id) < 5 ||
+        (opponent.item && opponent.item !== 'shield'));
+      this.playerFiring = Boolean(input.press || input.edges?.includes(true));
+      this.parts = hazards(game, tank, opponent, input, steps, false, true);
+      this.missiles = new TankMissileEvasion(game, tank, opponent, this.foeForecast);
+      this.bounds = [];
+      this.addMuzzleForecast(input);
+      this.index();
+    }
+
+    addTimedPath(path, speed, delay, confidence) {
+      for (const s of path) {
+        const from = s.start / speed + delay;
+        const to = s.end / speed + delay;
+        const low = Math.max(0, Math.floor(from / H));
+        const high = Math.min(this.steps, Math.ceil(to / H));
+        for (let j = low; j < high; j++) {
+          const a = Math.max(j * H, from);
+          const b = Math.min((j + 1) * H, to);
+          if (b <= a) continue;
+          const d0 = (a - delay) * speed - s.start;
+          const d1 = (b - delay) * speed - s.start;
+          this.parts[j].push({
+            p: { x: s.x + s.dx * d0, y: s.y + s.dy * d0 },
+            q: { x: s.x + s.dx * d1, y: s.y + s.dy * d1 },
+            lo: a / H - j,
+            hi: b / H - j,
+            confidence
+          });
+        }
+      }
+    }
+
+    addMuzzleForecast(input) {
+      if (!this.ready || this.laser || this.foe.item === 'mine') return;
+      const distance = dist(this.foe, this.tank);
+      if (distance > 6) return;
+      const rapid = this.foe.rapid;
+      const delays = rapid ? [.04,.18,.36] : [this.playerFiring ? 0 : .14];
+      const offsets = this.foe.item === 'triple' ? [-.18, 0, .18] : [0];
+      const speed = rapid ? 4.65 : 3.75;
+      for (const delay of delays) {
+        const start = this.foeForecast ? positionAt(this.foeForecast, delay) : this.foe;
+        const a = this.foe.a + (input.turn || 0) * 3.65 * delay;
+        for (const offset of offsets) {
+          const path = flight(this.game.maze, start, a + offset, speed * 1.24, SHOT, 4);
+          this.addTimedPath(path, speed, delay, rapid || this.playerFiring ? .88 : .38);
+        }
+      }
+    }
+
+    index() {
+      for (let j = 0; j < this.steps; j++) {
+        const parts = this.parts[j];
+        let left = Infinity, right = -Infinity, top = Infinity, bottom = -Infinity;
+        for (const b of parts) {
+          b.left = Math.min(b.p.x, b.q.x) - margin;
+          b.right = Math.max(b.p.x, b.q.x) + margin;
+          b.top = Math.min(b.p.y, b.q.y) - margin;
+          b.bottom = Math.max(b.p.y, b.q.y) + margin;
+          left = Math.min(left, b.left);
+          right = Math.max(right, b.right);
+          top = Math.min(top, b.top);
+          bottom = Math.max(bottom, b.bottom);
+        }
+        this.bounds.push({ left, right, top, bottom });
+      }
+    }
+
+    crossings(p, q, j) {
+      const dx = q.x - p.x, dy = q.y - p.y;
+      const left = Math.min(p.x, q.x), right = Math.max(p.x, q.x);
+      const top = Math.min(p.y, q.y), bottom = Math.max(p.y, q.y);
+      const bounds = this.bounds[j];
+      if (left > bounds.right || right < bounds.left ||
+          top > bounds.bottom || bottom < bounds.top) return 0;
+      let worst = 0;
+      for (const b of this.parts[j]) {
+        if (left > b.right || right < b.left || top > b.bottom || bottom < b.top) continue;
+        const x = p.x + dx * b.lo - b.p.x;
+        const y = p.y + dy * b.lo - b.p.y;
+        const gap = separation(x, y,
+          dx * (b.hi - b.lo) - b.q.x + b.p.x,
+          dy * (b.hi - b.lo) - b.q.y + b.p.y);
+        if (gap > margin) continue;
+        const contactCost = gap < contact + .018
+          ? 35 + (contact + .018 - gap) * 60
+          : 5 * ((margin - gap) / (margin - contact)) ** 2;
+        worst = Math.max(worst, contactCost * b.confidence);
+      }
+      return worst;
+    }
+
+    minesAt(p, q) {
+      let worst = 0;
+      for (const mine of this.mines) {
+        if (!mine.armed && mine.owner === this.tank.id && dist(this.tank, mine) < .59) continue;
+        const gap = separation(p.x - mine.x, p.y - mine.y, q.x - p.x, q.y - p.y);
+        if (gap > .82 || !this.game.maze.visible(q, mine)) continue;
+        const risk = gap < .60 ? 45 : (.82 - gap) * 23;
+        worst = Math.max(worst, risk);
+      }
+      return worst;
+    }
+
+    gunLane(q, j) {
+      if (!this.ready) return 0;
+      const time = (j + 1) * H;
+      const enemy = this.foeForecast?.[j + 1] || this.foe;
+      const distance = dist(enemy, q);
+      if (distance > (this.laser ? 8 : 4.6) || distance < .01) return 0;
+      const a = bearing(enemy, q);
+      const diff = Math.abs(angleDiff(a, enemy.a));
+      const reachable = this.laser ? .07 + Math.min(.7, time * 1.25) :
+        .08 + Math.min(.36, time * .60);
+      if (diff > reachable || !this.game.maze.visible(enemy, q, .015)) return 0;
+      const urgency = this.laser ? 7.5 : Math.max(0, 1.55 - distance * .24);
+      return urgency * (1 - diff / reachable);
+    }
+
+    cost(p, q, step) {
+      const danger = Math.max(this.crossings(p, q, step), this.minesAt(p, q));
+      const gun = Math.max(this.gunLane(q, step), this.beams?.length ? TankOrdnance.beamRisk(q, this.beams, step) : 0);
+      const shield = this.tank.item === 'shield';
+      return { danger: danger * (shield ? .62 : 1), gun: gun * (shield ? .5 : 1) };
+    }
+
+    incoming() {
+      // Used to enable a more expensive search only when a stationary tank
+      // is already in jeopardy or a projectile is close enough to constrain it.
+      for (let j = 0; j < Math.min(8, this.steps); j++) {
+        if (this.crossings(this.tank, this.tank, j) > 1.4) return true;
+      }
+      return this.laser || this.missiles.seeds.length > 0 || this.mines.some(m => dist(m, this.tank) < 1.4);
+    }
+  }
+
+  global.TankThreatField = ThreatField;
+})(globalThis);
+
+</script>
+<script>
+/* Receding-horizon motion search. A maneuver can change drive direction and
+   curvature after the first segment. Only its first control is executed, then
+   the observed world is used to plan again. */
+(function (global) {
+  'use strict';
+  const { clamp, angleDiff, dist } = TankArena;
+  const { H, TURN, pose, bearing, advance } = TankTactics;
+
+  function aimDrive(drive, a) {
+    return { drive, a };
+  }
+
+  function fixed(drive, turn) {
+    return { drive, turn };
+  }
+
+  function commandFor(move, tank, dt) {
+    if (move.a !== undefined) {
+      return {
+        drive: move.drive,
+        turn: clamp(angleDiff(move.a, tank.a) / (TURN * dt), -1, 1)
+      };
+    }
+    return { drive: move.drive, turn: move.turn };
+  }
+
+  function distinct(options) {
+    const result = [];
+    const seen = new Set();
+    for (const move of options) {
+      const suffix = move.a === undefined ? 't' + move.turn :
+        'a' + Math.round(Math.atan2(Math.sin(move.a), Math.cos(move.a)) * 24);
+      const key = move.drive + suffix;
+      if (seen.has(key)) continue;
+      seen.add(key);
+      result.push(move);
+    }
+    return result;
+  }
+
+  class ManeuverSearch {
+    constructor() {
+      this.last = fixed(0, 0);
+      this.line = [];
+      this.lastSafety = 0;
+    }
+
+    options(ctx, p, followup) {
+      const toGoal = bearing(p, ctx.goal.p);
+      const options = [];
+      if (!followup) options.push(this.last);
+      options.push(aimDrive(1, toGoal), aimDrive(-1, toGoal + Math.PI));
+      if (ctx.shot && ctx.shot.value > .14) {
+        const a = ctx.shot.a;
+        options.push(aimDrive(0, a), aimDrive(-1, a), aimDrive(1, a));
+      }
+      if (ctx.enemy.alive && ctx.underFire) {
+        const side = bearing(ctx.enemy, p) + Math.PI / 2;
+        options.push(aimDrive(1, side), aimDrive(1, side + Math.PI));
+        options.push(aimDrive(-1, side), aimDrive(-1, side + Math.PI));
+      }
+      const turns = followup ? [-1, 0, 1] : [-1, -.5, 0, .5, 1];
+      for (const drive of [-1, 1]) {
+        for (const turn of turns) options.push(fixed(drive, turn));
+      }
+      options.push(fixed(0, 0));
+      if (!followup || ctx.underFire) options.push(fixed(0, -1), fixed(0, 1));
+      return distinct(options);
+    }
+
+    root(tank) {
+      return {
+        p: pose(tank),
+        first: null,
+        history: [],
+        steps: 0,
+        damage: 0,
+        peak: 0,
+        exposure: 0,
+        progress: 0,
+        aiming: 0,
+        opportunity: 0,
+        change: 0,
+        score: 0
+      };
+    }
+
+    extend(ctx, node, move, count) {
+      const p = pose(node.p);
+      const first = node.first || move;
+      const missiles = ctx.field.missiles.fork(node.missiles);
+      const steps = node.steps + count;
+      const line = node.history.slice();
+      let damage = node.damage;
+      let peak = node.peak;
+      let exposure = node.exposure;
+      let progress = node.progress;
+      let aiming = node.aiming;
+      let opportunity = node.opportunity;
+      let previousGap = dist(p, ctx.goal.p);
+      let change = node.change;
+      if (!node.first) change += Math.abs(move.drive - this.last.drive) * .025;
+      for (let i = node.steps; i < steps; i++) {
+        const start = pose(p);
+        const arrived = !ctx.underFire && !ctx.combat && previousGap < .13;
+        const control = arrived ? fixed(0, 0) : commandFor(move, p, H);
+        advance(ctx.g, p, control, H);
+        line.push(pose(p));
+        const weight = 1 / (1 + .22 * i);
+        const risk = ctx.field.cost(start, p, i);
+        if (missiles) risk.danger = Math.max(risk.danger, ctx.field.missiles.advance(missiles,start,p,i));
+        damage += risk.danger * weight;
+        peak = Math.max(peak, risk.danger * weight);
+        exposure += risk.gun * weight;
+        const gap = dist(p, ctx.goal.p);
+        progress += (previousGap - gap) * weight;
+        previousGap = gap;
+        if (ctx.combat) {
+          const err = Math.abs(angleDiff(ctx.shot.a, p.a));
+          aiming += Math.cos(err) * weight;
+          if (err < .09 && i <= 4) {
+            opportunity = Math.max(opportunity, ctx.shot.value * (1 - i * .12));
+          }
+        }
+      }
+      const facing = ctx.combat ? 0 :
+        Math.cos(angleDiff(bearing(p, ctx.goal.p), p.a)) * .18;
+      const driveWeight = ctx.goal.type === 'press' ? 5.1 : ctx.goal.type === 'flank' ? 4.4 : ctx.combat ? 1.35 : 5.2;
+      let score = progress * driveWeight + facing - change;
+      score += aiming * 1.30 + opportunity * 2.25;
+      if (ctx.window && ctx.enemy.alive && ctx.goal.type !== 'pickup') {
+        const v = line[Math.min(line.length,4)-1];
+        score += ctx.window.score(v, .48) * 3.1;
+        if (line.length >= 8) score += ctx.window.score(line[7], .96) * 1.6;
+      }
+      score -= peak * 1.20 + damage * .57 + exposure * .75;
+      // A dead opponent cannot score again. During the settlement window only
+      // survival matters; accepting a shield hit is still worse than a clean exit.
+      if (!ctx.enemy.alive) score -= damage * .6;
+      return {
+        p, first, missiles, history: line, steps, damage, peak, exposure,
+        progress, aiming, opportunity, change, score
+      };
+    }
+
+    diversify(nodes, width) {
+      nodes.sort((a, b) => b.score - a.score);
+      const selected = [];
+      for (const n of nodes) {
+        const duplicate = selected.some(other =>
+          dist(n.p, other.p) < .19 && Math.abs(angleDiff(n.p.a, other.p.a)) < .28
+        );
+        if (!duplicate) selected.push(n);
+        if (selected.length >= width) break;
+      }
+      return selected;
+    }
+
+    search(game, me, enemy, goal, shot, field, window = null) {
+      const underFire = field.incoming();
+      const combat = enemy.alive && shot?.viable &&
+        (['advance','intercept','press'].includes(goal.type) || shot.value > .77);
+      const ctx = { g: game, me, enemy, goal, shot, field, underFire, combat, window };
+      const root = this.root(me);
+      root.missiles = field.missiles.initial();
+      const first = this.options(ctx, me, false);
+      // Keep a long single-action rollout as a baseline. A multi-stage path
+      // must earn its extra complexity by improving the same objective.
+      let best = null;
+      const partial = [];
+      for (const move of first) {
+        const node = this.extend(ctx, root, move, 4);
+        partial.push(node);
+        const long = this.extend(ctx, node, move, field.steps - 4);
+        if (!best || long.score > best.score) best = long;
+      }
+
+      if (underFire || best.peak > 2 || (combat && best.opportunity < .15)) {
+        const beam = this.diversify(partial, underFire ? 5 : 3);
+        const middle = [];
+        for (const node of beam) {
+          for (const move of this.options(ctx, node.p, true)) {
+            middle.push(this.extend(ctx, node, move, 4));
+          }
+        }
+        for (const node of this.diversify(middle, 4)) {
+          for (const move of this.options(ctx, node.p, true)) {
+            const leaf = this.extend(ctx, node, move, field.steps - 8);
+            if (leaf.score > best.score) best = leaf;
+          }
+        }
+      }
+      this.last = !ctx.underFire && !ctx.combat && dist(me, goal.p) < .13 ? fixed(0, 0) : best.first;
+      this.line = best.history;
+      this.lastSafety = best.peak;
+      return best.first;
+    }
+  }
+
+  global.TankManeuver = { ManeuverSearch, commandFor };
+})(globalThis);
+
+</script>
+<script>
+/* Compare shoot/hold against physically reachable replies. An escape that was
+   already covered before firing is not credited as another successful attack. */
+(function (global) {
+  'use strict';
+  const { dist, clamp, angleDiff, BODY, SHOT } = TankArena;
+  const { H, SPEED, TURN, pose, bearing, advance, along, flight, positionAt } = TankTactics;
+  const { crossing } = TankShotGeometry;
+  const duration = 1.68;
+
+  class ReplyBook {
+    constructor(game, enemy, me, input) {
+      this.game = game;
+      this.enemy = enemy;
+      this.me = me;
+      this.input = input;
+      this.replies = [];
+      this.addReplies();
+    }
+
+    rollout(name, delay, policy) {
+      const p = pose(this.enemy);
+      const line = [pose(p)];
+      for (let i = 0; i < 18; i++) {
+        const t = i * H;
+        const action = t < delay ? this.input : policy(p, t);
+        advance(this.game, p, action, H);
+        line.push(pose(p));
+      }
+      const duplicate = this.replies.some(r =>
+        dist(r.line[5], line[5]) < .10 &&
+        dist(r.line[10], line[10]) < .12 &&
+        dist(r.line[14], line[14]) < .18
+      );
+      if (!duplicate) this.replies.push({ name, line, covered: false });
+    }
+
+    addReplies() {
+      const constant = (drive, turn) => () => ({ drive, turn });
+      this.rollout('current', 0, () => this.input);
+      this.rollout('brake', .12, constant(0, 0));
+      this.rollout('reverse', .12, constant(-1, 0));
+      this.rollout('accelerate', .12, constant(1, 0));
+      for (const turn of [-1, 1]) {
+        for (const drive of [-1, 1]) {
+          this.rollout('hook', .12, (p, t) => ({ drive, turn: t < .60 ? turn : 0 }));
+        }
+      }
+      const cell = this.game.maze.cell(this.enemy);
+      for (const exit of this.game.maze.links[cell]) {
+        const dest = this.game.maze.center(exit);
+        const reverse = Math.abs(angleDiff(bearing(this.enemy, dest), this.enemy.a)) > Math.PI / 2;
+        this.rollout('corridor', .18, p => {
+          const a = bearing(p, dest) + (reverse ? Math.PI : 0);
+          const difference = angleDiff(a, p.a);
+          return {
+            drive: (reverse ? -1 : 1) * Math.max(.1, Math.cos(difference)),
+            turn: clamp(difference / (TURN * H), -1, 1)
+          };
+        });
+      }
+    }
+
+    existingCoverage() {
+      for (const bullet of this.game.bullets) {
+        if (bullet.owner !== this.me.id || bullet.gone) continue;
+        if (bullet.kind === 'seeker' || bullet.kind === 'frag') continue;
+        const life = Math.min(duration, bullet.life - bullet.age);
+        if (life <= 0) continue;
+        const path = flight(this.game.maze, bullet, Math.atan2(bullet.dy, bullet.dx),
+          life * bullet.speed, SHOT, 6, bullet.kind === 'fragment');
+        for (const reply of this.replies) {
+          if (!reply.covered) {
+            reply.covered = Number.isFinite(crossing(reply.line, path, bullet.speed, life, 0).contact);
+          }
+        }
+      }
+    }
+  }
+
+  function fuseThreat(game, origin, direction, reply, delay) {
+    const target = positionAt(reply.line, delay + 1.1);
+    const distance = dist(target, origin);
+    if (distance > 2.1) return 0;
+    if (!game.maze.visible(origin, target)) return 0;
+    // Fragment angles and velocities are randomized on impact. Use a fan with
+    // fractional coverage, not the game's random generator or its next draw.
+    const travel = distance / 3.75;
+    const later = positionAt(reply.line, delay + 1.1 + travel);
+    const angle = bearing(origin, later);
+    const spacing = Math.PI / 6;
+    const nearest = direction + spacing * Math.round((angle - direction) / spacing);
+    const miss = Math.abs(Math.sin(angleDiff(angle, nearest))) * dist(later, origin);
+    if (dist(later, origin) < .35) return .94;
+    return clamp((.46 - miss) / .37, .12, .83) * (1 - .14 * travel);
+  }
+
+  class Counterplay {
+    shortlist(shots) {
+      const candidates = [...shots].sort((a, b) => b.rank - a.rank);
+      const picked = [];
+      for (const s of candidates) {
+        if (s.rank < .08 || picked.length >= 4) break;
+        if (picked.some(other => Math.abs(angleDiff(other.a, s.a)) < .053)) continue;
+        picked.push(s);
+      }
+      return picked;
+    }
+
+    rays(game, me, shot) {
+      const offsets = shot.weapon === 'triple' ? [-.18, 0, .18] : [0];
+      const speed = shot.weapon === 'rapid' ? 4.65 : SPEED;
+      const lifetime = shot.weapon === 'frag' ? 1.1 : duration;
+      return offsets.map(offset => {
+        const a = shot.a + offset;
+        const parts = flight(game.maze, me, a, lifetime * speed, SHOT, 6);
+        return {
+          a, speed, lifetime, parts,
+          fuse: shot.weapon === 'frag' ? along(parts, lifetime * speed) : null
+        };
+      });
+    }
+
+    score(game, me, shot, book) {
+      const rays = this.rays(game, me, shot);
+      const delay = Math.min(.42, Math.abs(angleDiff(shot.a, me.a)) / TURN);
+      let open = 0;
+      let contacts = 0;
+      let pressure = 0;
+      let escape = 0;
+      let immediate = 0;
+      for (const reply of book.replies) {
+        if (reply.covered) continue;
+        open++;
+        let best = 0;
+        for (const ray of rays) {
+          const result = crossing(reply.line, ray.parts, ray.speed, ray.lifetime, delay);
+          let value = clamp((.49 - result.nearest) / .275, 0, 1);
+          if (Number.isFinite(result.contact)) {
+            value = 1;
+            if (reply.name === 'current' && result.contact < .54) immediate = 1;
+          }
+          if (ray.fuse) {
+            value = Math.max(value, fuseThreat(game, ray.fuse, ray.a, reply, delay));
+          }
+          best = Math.max(best, value);
+        }
+        if (best > .96) contacts++;
+        if (best < .25) escape++;
+        pressure += best;
+      }
+      const fraction = pressure / Math.max(1, open);
+      const trapped = open > 1 && escape === 0;
+      const gain = fraction * .22 + (trapped ? .11 : 0) + immediate * .07;
+      return { gain, open, contacts, escape, trapped, fraction };
+    }
+
+    refine(game, me, foe, input, forecasts, candidates, direct) {
+      if (!direct || !direct.viable || direct.weapon === 'laser' || direct.weapon === 'seeker') {
+        return direct;
+      }
+      if (dist(me, foe) > 7 || forecasts.length === 0) return direct;
+      const shortlist = this.shortlist(candidates);
+      if (!shortlist.length) return direct;
+      const book = new ReplyBook(game, foe, me, input);
+      book.existingCoverage();
+      let best = null;
+      for (const shot of shortlist) {
+        const audit = this.score(game, me, shot, book);
+        const rank = shot.rank + audit.gain;
+        if (!best || rank > best.rank) {
+          best = {
+            ...shot, rank, audit,
+            value: shot.value + audit.gain * .65,
+            viable: rank > .24
+          };
+        }
+      }
+      return best || direct;
+    }
+  }
+
+  global.TankCounterplay = Counterplay;
+})(globalThis);
+
+</script>
+<script>
+/* Static broad phase for the many hypothetical physics calls made during
+   a decision. It only selects candidate walls. The narrow phase remains
+   Maze.cast / Maze.fits, exactly as used by the running game. */
+(function (global) {
+  'use strict';
+  const { BODY, clamp } = TankArena;
+  const padding = BODY + .10;
+
+  class PlanningScene {
+    constructor(game) {
+      this.source = game.maze;
+      this.width = this.source.cols;
+      this.height = this.source.rows;
+      this.buckets = [];
+      this.small = [];
+      this.stamp = 0;
+      this.scratch = [];
+      this.tags = new Uint32Array(this.source.walls.length);
+      const count = this.width * this.height;
+      for (let i = 0; i < count; i++) {
+        this.buckets.push([]);
+        this.small.push([]);
+      }
+      this.indexWalls();
+      this.world = Object.create(game);
+      const map = Object.create(this.source);
+      map.fits = (x, y, r) => this.fits(x, y, r);
+      map.cast = (x, y, dx, dy, limit, r = 0) => this.cast(x, y, dx, dy, limit, r);
+      this.world.maze = map;
+    }
+
+    indexWalls() {
+      const walls = this.source.walls;
+      for (let i = 0; i < walls.length; i++) {
+        const w = walls[i];
+        const x0 = clamp(Math.floor(w.x1 - padding), 0, this.width - 1);
+        const x1 = clamp(Math.floor(w.x2 + padding), 0, this.width - 1);
+        const y0 = clamp(Math.floor(w.y1 - padding), 0, this.height - 1);
+        const y1 = clamp(Math.floor(w.y2 + padding), 0, this.height - 1);
+        for (let row = y0; row <= y1; row++) {
+          for (let col = x0; col <= x1; col++) {
+            const cell = row * this.width + col;
+            this.buckets[cell].push(i);
+            this.small[cell].push(w);
+          }
+        }
+      }
+    }
+
+    fits(x, y, r) {
+      const col = Math.floor(x);
+      const row = Math.floor(y);
+      if (r > padding || row < 0 || col < 0 || row >= this.height || col >= this.width) {
+        return this.source.fits(x, y, r);
+      }
+      return this.source.fits(x, y, r, this.small[row * this.width + col]);
+    }
+
+    collect(index) {
+      for (const wall of this.buckets[index]) {
+        if (this.tags[wall] === this.stamp) continue;
+        this.tags[wall] = this.stamp;
+        this.scratch.push(this.source.walls[wall]);
+      }
+    }
+
+    cast(x, y, dx, dy, limit, r) {
+      const col = Math.floor(x);
+      const row = Math.floor(y);
+      if (col < 0 || row < 0 || col >= this.width || row >= this.height ||
+          r > padding || limit > 9) {
+        return this.source.cast(x, y, dx, dy, limit, r);
+      }
+      const endX = clamp(Math.floor(x + dx * limit), 0, this.width - 1);
+      const endY = clamp(Math.floor(y + dy * limit), 0, this.height - 1);
+      if (col === endX && row === endY) {
+        return this.source.cast(x, y, dx, dy, limit, r, this.small[row * this.width + col]);
+      }
+      // Very long or diagonal rays often span most of the board. Linear scan
+      // is cheaper than building a large temporary candidate set in that case.
+      const cells = (1 + Math.abs(col - endX)) * (1 + Math.abs(row - endY));
+      if (cells > 15) return this.source.cast(x, y, dx, dy, limit, r);
+      this.stamp = (this.stamp + 1) >>> 0;
+      if (this.stamp === 0) {
+        this.tags.fill(0);
+        this.stamp = 1;
+      }
+      this.scratch.length = 0;
+      const x0 = Math.min(col, endX);
+      const x1 = Math.max(col, endX);
+      const y0 = Math.min(row, endY);
+      const y1 = Math.max(row, endY);
+      for (let j = y0; j <= y1; j++) {
+        for (let i = x0; i <= x1; i++) this.collect(j * this.width + i);
+      }
+      return this.source.cast(x, y, dx, dy, limit, r, this.scratch);
+    }
+  }
+
+  global.TankPlanningScene = PlanningScene;
+})(globalThis);
+
+</script>
+<script>
+/* Controls when to press an advantage or break off a repeating exchange.
+   This layer selects goals and ammunition policy only. Dodging still has the
+   last word on the first movement command of every plan. */
+(function (global) {
+  'use strict';
+  const { dist, clamp, angleDiff, BODY } = TankArena;
+  const { H, TURN, bearing, positionAt, routeInfo, walkable } = TankTactics;
+
+  class Engagement {
+    constructor() {
+      this.started = -Infinity;
+      this.lastVisible = -Infinity;
+      this.volleys = [];
+      this.lastTap = null;
+      this.nextFlank = 0;
+      this.flank = null;
+      this.flankUntil = 0;
+      this.advantage = 0;
+    }
+
+    observe(game, me, foe, weapons) {
+      const visible = foe.alive && game.maze.visible(me, foe);
+      if (visible) {
+        if (game.time - this.lastVisible > 1.8) {
+          this.started = game.time;
+          this.volleys.length = 0;
+        }
+        this.lastVisible = game.time;
+      }
+      if (weapons.lastTap && weapons.lastTap !== this.lastTap) {
+        this.lastTap = weapons.lastTap;
+        this.volleys.push({ time: game.time, x: me.x, y: me.y });
+      }
+      while (this.volleys.length && this.volleys[0].time < game.time - 9) {
+        this.volleys.shift();
+      }
+      return visible;
+    }
+
+    balance(game, me, enemy) {
+      const shotCount = game.count(enemy.id);
+      const own = game.count(me.id);
+      const angle = Math.abs(angleDiff(bearing(enemy, me), enemy.a));
+      const ownAngle = Math.abs(angleDiff(bearing(me, enemy), me.a));
+      let advantage = .52 * (angle - ownAngle);
+      advantage += .29 * (shotCount - own);
+      if (me.item === 'shield') advantage += 2.2;
+      if (enemy.item === 'shield') advantage -= 1.35;
+      if (me.item === 'laser') advantage += 1.1;
+      if (enemy.item === 'laser') advantage -= 2.1;
+      if (enemy.rapid) advantage -= .8;
+      if (shotCount === 5 && !enemy.item) {
+        // If a slot is about to reopen there is no full magazine advantage.
+        const until = game.bullets.reduce((least, b) => {
+          if (b.owner !== enemy.id || b.kind !== 'regular') return least;
+          return Math.min(least, b.life - b.age);
+        }, Infinity);
+        if (until > .7) advantage += 1.55;
+      }
+      return advantage;
+    }
+
+    nearestCover(game, me, foe, atlas) {
+      const maze = game.maze;
+      const meCell = maze.cell(me);
+      const foeCell = maze.cell(foe);
+      let best = null;
+      for (const cell of atlas.options(meCell, 3)) {
+        const p = atlas.centers[cell];
+        const travel = atlas.range(meCell, cell);
+        const covered = !maze.visible(foe, p, .025);
+        if (!covered || travel === 0) continue;
+        const value = 2.1 - .48 * travel - atlas.depth[cell] * .36 +
+          .25 * maze.links[cell].length - .08 * atlas.range(cell, foeCell);
+        if (!best || value > best.value) best = { p, value };
+      }
+      return best?.p;
+    }
+
+    lateralPosition(game, me, foe, atlas, predicted) {
+      const maze = game.maze;
+      const meCell = maze.cell(me);
+      const oldAngle = bearing(foe, me);
+      const range = dist(me, foe);
+      const target = predicted || foe;
+      let best = null;
+      for (const cell of atlas.options(meCell, 3)) {
+        if (cell === meCell) continue;
+        const center = atlas.centers[cell];
+        const travel = atlas.range(meCell, cell);
+        const gap = dist(center, target);
+        if (gap < .72 || gap > Math.min(6.4, range + .9)) continue;
+        const sees = maze.visible(center, target, .035);
+        if (!sees) continue;
+        const separation = Math.abs(angleDiff(bearing(foe, center), oldAngle));
+        const aimCost = Math.abs(angleDiff(bearing(center, foe), me.a));
+        const crossed = Math.abs(angleDiff(bearing(foe, center), foe.a));
+        const laneRisk = Math.max(0, 1 - crossed / .6);
+        const score = Math.min(separation, 1.9) * 1.8 +
+          clamp(range - gap, -1, 2) * .8 + maze.links[cell].length * .17 -
+          aimCost * .18 - travel * .32 - laneRisk - atlas.depth[cell] * .27;
+        if (!best || score > best.score) best = { p: center, score };
+      }
+      return best?.score > .25 ? best.p : null;
+    }
+
+    attackPosition(game, me, foe, navigation, forecasts) {
+      const atlas = navigation.atlas;
+      const here = game.maze.cell(me);
+      const there = game.maze.cell(foe);
+      const expected = positionAt(forecasts[0].line,.72);
+      let best = null;
+      for (const cell of atlas.options(here,5)) {
+        const travel = atlas.range(here,cell);
+        if (!travel || atlas.depth[cell] > 1) continue;
+        const point = atlas.centers[cell];
+        const gap = dist(point,foe);
+        if (gap < .75 || gap > 4.6) continue;
+        const sees = game.maze.visible(point,foe,.025);
+        const leads = game.maze.visible(point,expected,.025);
+        if (!sees && !leads) continue;
+        const azimuth = bearing(foe,point);
+        const turn = Math.abs(angleDiff(foe.a,azimuth));
+        const lateral = Math.abs(angleDiff(bearing(foe,me),azimuth));
+        const fresh = clamp((game.time - navigation.visits[cell])/5,0,1);
+        const score = turn*.63 + Math.min(lateral,1.8)*.85 + fresh*.70 +
+          (sees ? .5 : 0) + (leads ? .5 : 0) - Math.abs(gap-1.65)*.66 -
+          travel*.39 - atlas.depth[cell]*.40 - Math.max(0,atlas.range(cell,there)-3)*.35;
+        if (!best || score>best.score) best={point,score};
+      }
+      return best?.point;
+    }
+
+    objective(game, me, foe, navigation, normal, forecasts, shot, visible) {
+      this.advantage = this.balance(game, me, foe);
+      if (!foe.alive || normal.type === 'pickup') return normal;
+      const atlas = navigation.atlas;
+      const gap = dist(me, foe);
+      const ammo = 5 - game.count(me.id);
+      const predicted = forecasts.length ? positionAt(forecasts[0].line, .52) : foe;
+      const repeated = this.volleys.length >= 3 && game.time - this.started > 3.2;
+      const mine = me.item === 'mine';
+      const pressure = ammo >= 2 && game.time > 15 && !mine && !foe.rapid && foe.item !== 'laser';
+      if (pressure && (!visible || gap>2.2) && !(shot?.impact < .58 && shot.kill > .62)) {
+        if (this.attackPoint && game.time < this.attackUntil && dist(me,this.attackPoint) > .30) {
+          return this.toward(game,me,this.attackPoint,'approach');
+        }
+        if (game.time >= (this.nextApproach || 0)) {
+          this.nextApproach = game.time+1.8;
+          this.attackPoint = this.attackPosition(game,me,foe,navigation,forecasts);
+          this.attackUntil = game.time+1.35;
+          if (this.attackPoint) return this.toward(game,me,this.attackPoint,'approach');
+        }
+      }
+      if (mine || !visible) return normal;
+      if (this.flank && game.time < this.flankUntil && dist(me, this.flank) > .25) {
+        return this.toward(game, me, this.flank, 'flank');
+      }
+      if (ammo < 2 && !me.item && this.advantage < -.6) {
+        const cover = this.nearestCover(game, me, foe, atlas);
+        if (cover) {
+          return this.toward(game, me, cover, 'cover');
+        }
+        return normal;
+      }
+      if ((repeated || (!shot?.viable && gap < 5)) && game.time >= this.nextFlank) {
+        this.nextFlank = game.time + 1.35;
+        const flank = this.lateralPosition(game, me, foe, atlas, predicted);
+        if (flank && (this.advantage < 1.4 || gap > 3.7)) {
+          this.flank = flank;
+          this.flankUntil = game.time + .85;
+          return this.toward(game, me, flank, 'flank');
+        }
+      }
+      if (gap > 1.15 && ammo >= 2 && (this.advantage > .45 || gap > 3.65) &&
+          foe.item !== 'laser' && !foe.rapid) {
+        return this.toward(game, me, predicted, 'press');
+      }
+      return normal;
+    }
+
+    toward(game, me, destination, type) {
+      if (walkable(game.maze, me, destination)) {
+        return { type, target: destination, p: destination };
+      }
+      const route = routeInfo(game.maze, me, destination, game.mines.filter(m => m.armed));
+      return { type, target: destination, p: route.next };
+    }
+
+    firePolicy(game, me, foe, shot) {
+      const ammo = 5 - game.count(me.id);
+      const distance = dist(me, foe);
+      const angle = Math.abs(angleDiff(bearing(foe, me), foe.a));
+      const stripped = this.lastEnemyShield && foe.item !== 'shield';
+      this.lastEnemyShield = foe.item === 'shield';
+      if (stripped) this.stripUntil = game.time + .40;
+      const follow = game.time < (this.stripUntil || 0);
+      const trapped = shot?.audit?.trapped;
+      const quick = (foe.item === 'shield' && distance < 3.8) ||
+        (distance < 1.6 && shot?.kill > .6) || follow;
+      const open = ammo > 1 && (trapped || angle > 1.45 || this.advantage > 1);
+      return {
+        interval: quick ? .083 : open ? .135 : .24,
+        threshold: quick ? -.16 : open ? -.065 : 0,
+        follow
+      };
+    }
+  }
+
+  global.TankEngagement = Engagement;
+})(globalThis);
+
+</script>
+<script>
+/* Weapon-specific countermeasures. Beam exposure is evaluated as a segment,
+   a seeker changes lock near a bisector, and a mine has an arming transition.
+   Treating all three as constant-speed bullets gives misleading evasions. */
+(function (global) {
+  'use strict';
+  const { BODY, SHOT, dist, clamp, angleDiff } = TankArena;
+  const { H, pose, advance, flight, along, bearing, positionAt } = TankTactics;
+
+  function pointToRay(point, part) {
+    const x = point.x - part.x;
+    const y = point.y - part.y;
+    const d = clamp(x * part.dx + y * part.dy, 0, part.end - part.start);
+    return Math.hypot(x - part.dx * d, y - part.dy * d);
+  }
+
+  function seekerRollout(game, me, foe, shot, cmd, forecast) {
+    const speed = 2.65;
+    const step = .08;
+    const tanks = game.tanks.map(t => ({ ...t }));
+    const self = tanks[me.id];
+    const enemy = tanks[foe.id];
+    const projected = { maze: game.maze, tanks };
+    const shell = {
+      x: me.x, y: me.y, dx: Math.cos(shot.a), dy: Math.sin(shot.a),
+      age: 0, life: 10, repath: 0, owner: me.id
+    };
+    let clear = false;
+    let selfDanger = Infinity;
+    let enemyDanger = Infinity;
+    let enemyLock = 0;
+    for (let n = 1; n <= 29; n++) {
+      const time = step * n;
+      shell.age = time;
+      if (n < 8) advance(game, self, cmd, step);
+      const position = positionAt(forecast.line, time);
+      enemy.x = position.x;
+      enemy.y = position.y;
+      game.guide.call(projected, shell, step);
+      const path = flight(game.maze, shell, Math.atan2(shell.dy, shell.dx),
+        speed * step, SHOT, 4);
+      const end = along(path, speed * step);
+      if (!end) break;
+      for (const part of path) {
+        if (clear || part.bounced) selfDanger = Math.min(selfDanger, pointToRay(self, part));
+        enemyDanger = Math.min(enemyDanger, pointToRay(enemy, part));
+      }
+      if (enemyDanger <= BODY + SHOT) break;
+      if (selfDanger <= BODY + SHOT) break;
+      shell.x = end.x;
+      shell.y = end.y;
+      shell.dx = path.at(-1).dx;
+      shell.dy = path.at(-1).dy;
+      if (dist(shell, self) > BODY + SHOT + .05) clear = true;
+      if (shell.targetId === foe.id && time > .8) enemyLock += step;
+    }
+    return {
+      unsafe: selfDanger < BODY + SHOT + .015 && enemyDanger > BODY + SHOT,
+      guided: enemyLock,
+      nearest: enemyDanger
+    };
+  }
+
+  class OrdnanceAdvisor {
+    constructor() {
+      this.nextSeek = 0;
+      this.seek = null;
+      this.nextSweep = 0;
+      this.nextBeamCheck = 0;
+      this.beams = [];
+      this.lastBeamPose = null;
+    }
+
+    guidedLaunch(game, me, foe, cmd, shot, forecast) {
+      if (!forecast) return false;
+      if (game.time >= this.nextSeek || !this.seek ||
+          Math.abs(angleDiff(shot.a, this.seek.a)) > .12) {
+        const trial = seekerRollout(game, me, foe, shot, cmd, forecast);
+        this.seek = { a: shot.a, ...trial };
+        this.nextSeek = game.time + .08;
+      }
+      return !this.seek.unsafe && (this.seek.guided > .24 || this.seek.nearest < .47);
+    }
+
+    sweepSafe(game, me, cmd, target) {
+      if (game.time < this.nextSweep) return true;
+      this.nextSweep = game.time + .065;
+      const self = pose(me);
+      const speed = 4.65;
+      const path = flight(game.maze, me, me.a, speed * .64, SHOT, 5);
+      if (path.length < 2) return true;
+      for (let n = 1; n <= 8; n++) {
+        advance(game, self, cmd, .08);
+        const point = along(path, n * .08 * speed);
+        if (!point) break;
+        if (target.alive && dist(point, target) < BODY + SHOT) return true;
+        if (n > 1 && dist(point, self) < BODY + SHOT + .04) return false;
+      }
+      return true;
+    }
+
+    evaluateMine(game, me, foe, movement, forecasts) {
+      const dir = me.a;
+      const pos = {
+        x: me.x - Math.cos(dir) * .26,
+        y: me.y - Math.sin(dir) * .26
+      };
+      if (!game.maze.fits(pos.x, pos.y, .07) || !game.maze.visible(me, pos)) {
+        pos.x = me.x;
+        pos.y = me.y;
+      }
+      let exit = Infinity;
+      const p = pose(me);
+      for (let i = 1; i <= 8; i++) {
+        advance(game, p, movement, .10);
+        if (dist(pos, p) > .59) {
+          exit = i * .10;
+          break;
+        }
+      }
+      // A dormant mine is still useful at a junction, provided we can actually
+      // leave. At close range prefer dying with a live trap over keeping it.
+      if (!Number.isFinite(exit)) return dist(me, foe) < 1.25;
+      let audience = 0;
+      let danger = 0;
+      for (const f of forecasts) {
+        for (let i = Math.ceil(exit / H); i < f.line.length; i++) {
+          if (dist(f.line[i], pos) >= .58 || !game.maze.visible(f.line[i], pos)) continue;
+          audience += f.weight;
+          if (i * H < exit + .14 && dist(p, pos) < .85) danger += f.weight;
+          break;
+        }
+      }
+      if (danger > .55 && me.item !== 'shield' && dist(me, foe) > 1.2) return false;
+      const junction = game.maze.links[game.maze.cell(me)].length;
+      return audience > .13 || (dist(me, foe) < 2.5 && junction <= 3);
+    }
+
+    beamPaths(game, foe, forecast, input = {}) {
+      if (!foe.alive || foe.item !== 'laser') {
+        this.beams = [];
+        this.lastBeamPose = null;
+        return this.beams;
+      }
+      if (game.time < this.nextBeamCheck && this.lastBeamPose &&
+          dist(foe, this.lastBeamPose) < .035 && Math.abs(angleDiff(foe.a, this.lastBeamPose.a)) < .017 &&
+          this.lastBeamPose.turn === (input.turn || 0) && this.lastBeamPose.aim === input.aim) {
+        return this.beams;
+      }
+      this.beams = [];
+      this.nextBeamCheck = game.time + .09;
+      this.lastBeamPose = { ...pose(foe), turn: input.turn || 0, aim: input.aim };
+      const length = Math.hypot(game.maze.cols, game.maze.rows) * 7;
+      // Every ray has a legal firing time. Include the opponent moving the
+      // muzzle around a corner before rotating through a reflected line.
+      const rays = [];
+      for (const delay of [0, .16, .36]) {
+        const origin = delay && forecast ? positionAt(forecast, delay) : foe;
+        const turn = input.aim === undefined ? clamp(input.turn || 0,-1,1)*3.65*delay :
+          clamp(angleDiff(input.aim,foe.a),-3.65*delay,3.65*delay);
+        const a = foe.a + turn;
+        const spread = delay ? .36 : .15;
+        for (let n = -4; n <= 4; n++) {
+          const offset = n * spread / 4;
+          const earliest = Math.max(delay, Math.abs(angleDiff(a+offset,foe.a))/3.65);
+          rays.push({origin, angle:a+offset, earliest, weight:(delay ? .78 : 1) / (1 + .13*Math.abs(n))});
+        }
+      }
+      const bins = new Map();
+      this.beams.bins = bins;
+      for (const ray of rays) {
+        const {origin,angle,earliest,weight} = ray;
+        const path = flight(game.maze, origin, angle, length, 0, 6);
+        for (const part of path) {
+          let end = part.end - part.start;
+          if (part.bounced && pointToRay(origin, part) < BODY) {
+            const forward = (origin.x - part.x) * part.dx + (origin.y - part.y) * part.dy;
+            end = clamp(forward, 0, end);
+          }
+          const finishX = part.x + part.dx * end;
+          const finishY = part.y + part.dy * end;
+          const beam = {
+            ...part, end: part.start + end, weight, earliest,
+            left: Math.min(part.x,finishX)-.34, right: Math.max(part.x,finishX)+.34,
+            top: Math.min(part.y,finishY)-.34, bottom: Math.max(part.y,finishY)+.34
+          };
+          this.beams.push(beam);
+          for (let y=Math.floor(beam.top); y<=Math.floor(beam.bottom); y++) {
+            for (let x=Math.floor(beam.left); x<=Math.floor(beam.right); x++) {
+              const key=y*64+x;
+              let bin=bins.get(key);
+              if (!bin) bins.set(key,bin=[]);
+              bin.push(beam);
+            }
+          }
+          if (end < part.end - part.start) break;
+        }
+      }
+      return this.beams;
+    }
+
+    static beamRisk(point, paths, step) {
+      if (step > 6) return 0;
+      let risk = 0;
+      const nearby = paths.bins ? paths.bins.get(Math.floor(point.y)*64+Math.floor(point.x)) : paths;
+      if (!nearby) return 0;
+      for (const part of nearby) {
+        if (part.earliest > (step+1)*H || point.x < part.left || point.x > part.right || point.y < part.top || point.y > part.bottom) continue;
+        const gap = pointToRay(point, part);
+        if (gap < .32) {
+          risk = Math.max(risk, part.weight * clamp((.34 - gap) / .155, 0, 1));
+        }
+      }
+      return risk * 21 / (1 + step * .3);
+    }
+  }
+
+  global.TankOrdnance = OrdnanceAdvisor;
+})(globalThis);
+
+</script>
+<script>
+/* Model a defender who also sees the maze and our shells. Motion history alone
+   cannot predict a dodge caused by a shot that was only just fired. */
+(function(global) {
+  'use strict';
+  const { BODY, SHOT, clamp, angleDiff, dist } = TankArena;
+  const { H, TURN, SPEED, pose, bearing, advance, flight, along, positionAt } = TankTactics;
+
+  class ShadowDefender {
+    constructor() {
+      this.nextFit = 0;
+      this.observations = [];
+      this.evasionSkill = .45;
+    }
+
+    updateSkill(enemy, time) {
+      while (this.observations.length && this.observations[0].time <= time) {
+        const sample = this.observations.shift();
+        const intentError = dist(sample.intent, enemy);
+        const dodgeError = dist(sample.dodge, enemy);
+        if (Math.abs(intentError - dodgeError) < .10) continue;
+        const dodged = dodgeError + .08 < intentError;
+        this.evasionSkill = .8 * this.evasionSkill + .2 * Number(dodged);
+      }
+    }
+
+    traceOurShots(game, me, enemy) {
+      const relevant = [];
+      for (const b of game.bullets) {
+        if (b.owner !== me.id && b.owner !== enemy.id) continue;
+        if (b.kind === 'seeker') continue;
+        if (dist(b, enemy) > 7.5) continue;
+        const life = Math.min(1.60, b.life - b.age,
+          b.kind === 'frag' ? Math.max(0, 1.1 - b.age) : Infinity);
+        if (life <= 0) continue;
+        const path = flight(game.maze, b, Math.atan2(b.dy,b.dx), life * b.speed,
+          SHOT, 6, b.kind === 'fragment');
+        const samples = [];
+        for (let j=0; j<=13; j++) samples.push(along(path, j*H*b.speed));
+        relevant.push({ samples, own: b.owner === enemy.id && !b.armed });
+      }
+      return relevant;
+    }
+
+    nearMiss(position, before, samples, j) {
+      let danger = 0;
+      for (const shot of samples) {
+        if (shot.own && j<2) continue;
+        const a=shot.samples[j], b=shot.samples[j+1];
+        if (!a || !b) continue;
+        const dx=position.x-before.x-b.x+a.x;
+        const dy=position.y-before.y-b.y+a.y;
+        const x=before.x-a.x, y=before.y-a.y;
+        const f=clamp(-(x*dx+y*dy)/(dx*dx+dy*dy||1),0,1);
+        const d=Math.hypot(x+dx*f,y+dy*f);
+        if (d>.54) continue;
+        const cost=d<BODY+SHOT+.02?28:3*(.54-d)/.30;
+        danger=Math.max(danger,cost);
+      }
+      return danger;
+    }
+
+    dodges(game, enemy, me, input, threats) {
+      const actions = [];
+      for (const drive of [-1,0,1]) {
+        for (const turn of [-1,0,1]) actions.push({drive,turn});
+        actions.push({drive,aim:bearing(enemy,me)});
+      }
+      const evaluated = [];
+      for (const action of actions) {
+        const p=pose(enemy);
+        const line=[pose(p)];
+        let peak=0, sum=0, aim=0;
+        for (let j=0;j<19;j++) {
+          const before=pose(p);
+          const cmd=j===0?input:action;
+          advance(game,p,cmd,H);
+          line.push(pose(p));
+          if (j<13) {
+            const danger=this.nearMiss(p,before,threats,j)/(1+.24*j);
+            peak=Math.max(danger,peak);
+            sum+=danger;
+            aim+=Math.cos(angleDiff(bearing(p,me),p.a))/(1+.3*j);
+          }
+        }
+        const arrival=dist(p,me);
+        const trend=action.drive===Math.sign(input.drive||0)?.36:0;
+        const score=-peak- .5*sum + .52*aim + trend - .25*Math.abs(arrival-2.1);
+        evaluated.push({score,line,action});
+      }
+      return evaluated.sort((a,b)=>b.score-a.score);
+    }
+
+    addForecasts(game, me, enemy, input, forecasts) {
+      this.updateSkill(enemy,game.time);
+      if (!forecasts.length || !game.bullets.length || dist(me,enemy)>7.6) return;
+      const threats=this.traceOurShots(game,me,enemy);
+      if (!threats.length) return;
+      let danger=0;
+      const intended=forecasts[0].line;
+      for (let j=0;j<12;j++) danger=Math.max(danger,this.nearMiss(intended[j+1],intended[j],threats,j));
+      if (danger<1.6) return;
+      const sorted=this.dodges(game,enemy,me,input,threats);
+      const first=sorted[0];
+      const second=sorted.find(s=>dist(s.line[7],first.line[7])>.38);
+      const mass=.18+this.evasionSkill*.37;
+      for (const f of forecasts) f.weight*=1-mass;
+      forecasts.push({key:'dodge',line:first.line,weight:mass*(second?.70:1)});
+      if (second) forecasts.push({key:'alternate-dodge',line:second.line,weight:mass*.30});
+      if (game.time>=this.nextFit) {
+        this.observations.push({
+          time:game.time+.60,
+          intent:positionAt(intended,.60),
+          dodge:positionAt(first.line,.60)
+        });
+        this.nextFit=game.time+.22;
+      }
+      forecasts.sort((a,b)=>b.weight-a.weight);
+    }
+  }
+
+  global.TankShadowDefender=ShadowDefender;
+})(globalThis);
+
+</script>
+<script>
+/* Evaluate where a movement branch will be able to shoot from. Scoring only
+   the current gun angle tends to produce long, sterile exchanges across a
+   doorway: two poses with the same angle can offer very different shots. */
+(function(global) {
+  'use strict';
+  const { BODY, SHOT, clamp, angleDiff, dist } = TankArena;
+  const { H, TURN, SPEED, bearing, flight, positionAt } = TankTactics;
+  const { crossing } = TankShotGeometry;
+
+  class AttackWindow {
+    constructor(game, me, foe, forecasts) {
+      this.game = game;
+      this.me = me;
+      this.foe = foe;
+      this.forecasts = forecasts;
+      this.enabled = foe.alive && forecasts.length > 0 &&
+        (game.count(me.id) < 5 || (me.item && me.item !== 'shield')) &&
+        me.item !== 'mine' && me.item !== 'seeker';
+      this.cache = new Map();
+      this.laser = me.item === 'laser';
+    }
+
+    replyMargin(pose, enemy, direction, arrival) {
+      // A tank pointed down the shot line can reverse but cannot immediately
+      // move sideways. Rotating away takes time even if input latency is zero.
+      const relative = Math.abs(Math.sin(angleDiff(direction, enemy.a)));
+      const lateral = Math.min(1, relative + TURN * arrival * .40);
+      const achievable = 2.02 * arrival * lateral;
+      return clamp((.66 - achievable) / .52, 0, 1);
+    }
+
+    threatFromEnemy(p, enemy) {
+      const d = dist(p, enemy);
+      const error = Math.abs(angleDiff(bearing(enemy, p), enemy.a));
+      const ready = this.foe.item || this.game.count(this.foe.id) < 5;
+      if (!ready) return 0;
+      const eta = error / TURN + (this.foe.item === 'laser' ? 0 : d / SPEED);
+      return Math.max(0, .65 - eta) * (this.me.item === 'shield' ? .4 : 1.8);
+    }
+
+    score(p, time) {
+      if (!this.enabled || time > 1.13) return 0;
+      const key = Math.round(p.x*12) + ',' + Math.round(p.y*12) + ',' +
+        Math.round(p.a*16) + ',' + Math.round(time/H);
+      if (this.cache.has(key)) return this.cache.get(key);
+      const f = this.forecasts[0];
+      const now = positionAt(f.line, time);
+      const range = dist(now, p);
+      let result = 0;
+      if (range < 5.8 && this.game.maze.visible(p, now, .026)) {
+        let aim = bearing(p, now);
+        const lead = this.laser ? 0 : range / SPEED;
+        const target = positionAt(f.line, Math.min(2.12,time+lead));
+        const desired = bearing(p, target);
+        const turn = Math.abs(angleDiff(desired, p.a)) / TURN;
+        const reachable = Math.max(0, 1 - turn / .56);
+        const vulnerability = this.replyMargin(p, f.line[Math.min(f.line.length-1,Math.round(time/H))], desired, lead);
+        let hit = 0;
+        if (reachable > .14) {
+          aim = desired;
+          if (this.laser) {
+            hit = 1;
+          } else {
+            const duration = Math.min(1.45, 2.18-time-turn);
+            if (duration > 0) {
+              const path = flight(this.game.maze, p, aim, SPEED*duration, SHOT, 2);
+              for (const guess of this.forecasts.slice(0,4)) {
+                const test = crossing(guess.line, path, SPEED, duration, time+turn);
+                hit += guess.weight * clamp((.43-test.nearest)/.24,0,1);
+              }
+            }
+          }
+        }
+        const close = Math.max(0, 1-range/4.8);
+        const gain = reachable * (.64*hit + .24*close + vulnerability*.49);
+        const counter = this.threatFromEnemy(p, {...now,a:f.line[Math.round(time/H)].a});
+        result = gain - counter;
+      }
+      this.cache.set(key,result);
+      return result;
+    }
+  }
+
+  global.TankAttackWindow=AttackWindow;
+})(globalThis);
+
+</script>
+<script>
+/* Two-shot search in tight fights. A pair must cover additional reachable
+   replies after accounting for turret rotation, projectile travel and the
+   delay between taps. The second shot is re-evaluated from the live pose. */
+(function(global) {
+  'use strict';
+  const { BODY, SHOT, dist, clamp, angleDiff } = TankArena;
+  const { H, SPEED, TURN, bearing, flight, positionAt } = TankTactics;
+  const { crossing } = TankShotGeometry;
+
+  class SalvoPlanner {
+    constructor() {
+      this.pending = null;
+      this.nextSearch = 0;
+      this.lastPress = null;
+    }
+
+    clean(game, me, foe) {
+      if (this.pending && (game.time > this.pending.expires || !foe.alive ||
+          (me.item && me.item !== 'shield') || game.count(me.id) >= 5)) {
+        this.pending = null;
+      }
+    }
+
+    notify(game, gun, primary) {
+      const tap = gun.lastTap;
+      if (!tap || tap === this.lastPress) return;
+      this.lastPress = tap;
+      if (primary?.second && !tap.weapon && Math.abs(angleDiff(tap.angle, primary.a)) < .10) {
+        this.pending = {
+          a: primary.second.a,
+          earliest: game.time + primary.second.wait,
+          expires: game.time + primary.second.wait + .35
+        };
+      } else {
+        this.pending = null;
+      }
+    }
+
+    liveFollowup(game, me, foe, forecasts, gun, direct) {
+      const order = this.pending;
+      if (!order) return null;
+      const start = gun.lane(game, me, forecasts, order.a, null);
+      if (start.selfTime < .45 && start.kill < .65) {
+        this.pending = null;
+        return null;
+      }
+      if (start.value < .23 || (direct && direct.kill > .76 && direct.value > start.value + .16)) {
+        this.pending = null;
+        return null;
+      }
+      const rank = start.value - .12*Math.abs(angleDiff(order.a, me.a));
+      return {
+        ...start, a: order.a, rank, viable: true, weapon: null,
+        earliest: order.earliest, followup: true
+      };
+    }
+
+    hitVector(game, me, forecasts, a, delay) {
+      const lifetime = Math.min(1.7, 2.19 - delay);
+      const path = flight(game.maze, me, a, SPEED*lifetime, SHOT, 5);
+      const vector = new Float32Array(forecasts.length);
+      let average = 0;
+      for (let i=0;i<forecasts.length;i++) {
+        const f = forecasts[i];
+        const solution = crossing(f.line,path,SPEED,lifetime,delay);
+        const hit = clamp((.395-solution.nearest)/.18,0,1);
+        vector[i] = hit;
+        average += f.weight*hit;
+      }
+      return { vector, average };
+    }
+
+    alternatives(me, forecasts, gun, direct) {
+      const opts = [];
+      function add(a) {
+        if (opts.some(v=>Math.abs(angleDiff(a,v))<.05)) return;
+        opts.push(a);
+      }
+      add(direct.a);
+      for (const s of [...gun.finalists].sort((a,b)=>b.rank-a.rank).slice(0,10)) {
+        if (s.selfTime>.48 && s.value>.13) add(s.a);
+      }
+      const lead = dist(me,forecasts[0].line[0])/SPEED;
+      for (const f of forecasts.slice(0,6)) {
+        add(bearing(me,positionAt(f.line,Math.min(1.75,lead+.32))));
+      }
+      return opts.slice(0,9);
+    }
+
+    bestPair(game, me, forecasts, angles, first) {
+      const initialDelay = Math.min(.40,Math.abs(angleDiff(first,me.a))/TURN);
+      const initial = this.hitVector(game,me,forecasts,first,initialDelay);
+      if (initial.average<.16 || initial.average>.94) return null;
+      let best = null;
+      for (const a of angles) {
+        const delta = Math.abs(angleDiff(a, first));
+        if (delta < .07 || delta > 1.28) continue;
+        const wait = .095 + delta/TURN;
+        const follow = this.hitVector(game,me,forecasts,a,wait+initialDelay);
+        let addition = 0;
+        for (let i=0;i<forecasts.length;i++) {
+          const f = forecasts[i];
+          const uncovered = 1 - initial.vector[i];
+          addition += f.weight * uncovered * follow.vector[i] * (1 - .7*(f.coverage||0));
+        }
+        if (addition < .145) continue;
+        const utility = initial.average + addition*.77 - .13*wait - .13*initialDelay;
+        if (!best || utility>best.utility) best = { a,wait,addition,utility };
+      }
+      return best;
+    }
+
+    select(game, me, foe, forecasts, gun, direct) {
+      this.clean(game,me,foe);
+      if (this.pending) {
+        const second = this.liveFollowup(game,me,foe,forecasts,gun,direct);
+        if (second) return second;
+      }
+      if (!direct || !direct.viable || direct.weapon || forecasts.length<2) return direct;
+      if (5-game.count(me.id)<3 || dist(me,foe)>5.5 || direct.kill>.90) return direct;
+      if (game.time<this.nextSearch) return direct;
+      this.nextSearch=game.time+.21;
+      const angles=this.alternatives(me,forecasts,gun,direct);
+      let best=null;
+      for (const a of angles.slice(0,4)) {
+        const plan=this.bestPair(game,me,forecasts,angles,a);
+        if (!plan || (best && plan.utility<=best.second.utility)) continue;
+        const s=gun.lane(game,me,forecasts,a,null);
+        if (s.selfTime<.48 && s.kill<.65) continue;
+        // A speculative first tap that the trigger would veto cannot start a pair.
+        if (s.value < Math.max(.35, direct.value*.78)) continue;
+        const rank=s.value-.16*Math.abs(angleDiff(a,me.a))+.32*plan.addition;
+        if (rank<direct.rank-.10) continue;
+        best={...s,a,weapon:null,rank,viable:true,second:plan};
+      }
+      return best||direct;
+    }
+  }
+
+  global.TankSalvoPlanner=SalvoPlanner;
+})(globalThis);
+
+</script>
+<script>
+/* A homing missile's future path depends on the very maneuver being scored.
+   Each search branch carries its own missile copies. A branch that crosses
+   the distance bisector can switch the lock onto the other tank. */
+(function(global) {
+  'use strict';
+  const { BODY, SHOT, clamp, dist, angleDiff } = TankArena;
+  const { H, bearing, flight, along } = TankTactics;
+
+  class MissileEvasion {
+    constructor(game, me, foe, forecast) {
+      this.game=game;
+      this.me=me;
+      this.foe=foe;
+      this.forecast=forecast;
+      this.seeds=game.bullets.filter(b=>b.kind==='seeker' &&
+        dist(b,me)<(2.65+2.02)*1.55 && !b.gone);
+      this.routes=new Map();
+      this.stations=new Map();
+    }
+
+    initial() {
+      if (!this.seeds.length) return null;
+      return this.seeds.map(b=>({...b,done:false, liveTarget:this.game.tanks.indexOf(b.target)}));
+    }
+
+    fork(states) {
+      return states && states.map(s=>({...s}));
+    }
+
+    center(i) {
+      let p=this.stations.get(i);
+      if (!p) {
+        p=this.game.maze.center(i);
+        this.stations.set(i,p);
+      }
+      return p;
+    }
+
+    waypoint(shell, target) {
+      const m=this.game.maze;
+      if (m.visible(shell,target,SHOT+.012)) return target;
+      const origin=m.cell(shell);
+      const end=m.cell(target);
+      const key=origin*m.links.length+end;
+      let route=this.routes.get(key);
+      if (!route) {
+        route=m.route(origin,end);
+        this.routes.set(key,route);
+      }
+      for (let i=route.length-1;i>=0;i--) {
+        const p=this.center(route[i]);
+        if (m.visible(shell,p,SHOT+.012)) return p;
+      }
+      return this.center(origin);
+    }
+
+    guide(shell, me, enemy, dt) {
+      const otherAlive=this.foe.alive;
+      const ownDist=dist(shell,me);
+      const enemyDist=otherAlive?dist(shell,enemy):Infinity;
+      const chaseEnemy=enemyDist<ownDist || (enemyDist===ownDist && this.foe.id===0);
+      const target=chaseEnemy?enemy:me;
+      const id=chaseEnemy?this.foe.id:this.me.id;
+      if (shell.targetId!==id) {
+        shell.targetId=id;
+        shell.repath=0;
+      }
+      if (shell.age<.8) return;
+      shell.repath-=dt;
+      if (shell.repath<=0) {
+        shell.repath=.12;
+        shell.target=this.waypoint(shell,target);
+        shell.liveTarget=shell.target===target ? id : -1;
+      }
+      if (!shell.target || dist(shell,shell.target)<=.025) return;
+      const old=Math.atan2(shell.dy,shell.dx);
+      const turn=clamp(angleDiff(bearing(shell,shell.target),old),-6.8*dt,6.8*dt);
+      shell.dx=Math.cos(old+turn);
+      shell.dy=Math.sin(old+turn);
+    }
+
+    distanceToLeg(p, q, segment, length) {
+      const fraction=segment.start/length;
+      const span=(segment.end-segment.start)/length;
+      const x=p.x+(q.x-p.x)*fraction-segment.x;
+      const y=p.y+(q.y-p.y)*fraction-segment.y;
+      const dx=(q.x-p.x)*span-segment.dx*(segment.end-segment.start);
+      const dy=(q.y-p.y)*span-segment.dy*(segment.end-segment.start);
+      const k=clamp(-(x*dx+y*dy)/(dx*dx+dy*dy||1),0,1);
+      return Math.hypot(x+k*dx,y+k*dy);
+    }
+
+    advance(states, p, q, step) {
+      if (!states) return 0;
+      const enemy0=this.forecast?.[step]||this.foe;
+      const enemy1=this.forecast?.[step+1]||this.foe;
+      let risk=0;
+      // Split each movement segment to follow the missile's limited turn radius.
+      for (let n=1;n<=3;n++) {
+        const lo=(n-1)/3,hi=n/3,dt=H/3;
+        const a={x:p.x+(q.x-p.x)*lo,y:p.y+(q.y-p.y)*lo};
+        const b={x:p.x+(q.x-p.x)*hi,y:p.y+(q.y-p.y)*hi};
+        const c={x:enemy0.x+(enemy1.x-enemy0.x)*lo,y:enemy0.y+(enemy1.y-enemy0.y)*lo};
+        const d={x:enemy0.x+(enemy1.x-enemy0.x)*hi,y:enemy0.y+(enemy1.y-enemy0.y)*hi};
+        for (const shell of states) {
+          if (shell.done) continue;
+          shell.age+=dt;
+          if (shell.age>=shell.life) {
+            shell.done=true;
+            continue;
+          }
+          if (shell.liveTarget >= 0) shell.target = shell.liveTarget === this.me.id ? b : d;
+          this.guide(shell,b,d,dt);
+          const len=shell.speed*dt;
+          const path=flight(this.game.maze,shell,Math.atan2(shell.dy,shell.dx),len,SHOT,4);
+          const owner=shell.owner===this.me.id?b:d;
+          if (dist(shell,owner)>BODY+SHOT+.001) shell.armed=true;
+          let closest=Infinity;
+          for (const part of path) {
+            if (part.bounced) shell.armed=true;
+            if (shell.armed || shell.owner!==this.me.id) {
+              closest=Math.min(closest,this.distanceToLeg(a,b,part,len));
+            }
+            if (this.foe.alive && (shell.armed||shell.owner!==this.foe.id) &&
+                this.distanceToLeg(c,d,part,len)<BODY+SHOT) {
+              shell.done=true;
+              break;
+            }
+          }
+          const end=along(path,len);
+          if (!end) {shell.done=true;continue;}
+          Object.assign(shell,end,{dx:path.at(-1).dx,dy:path.at(-1).dy});
+          // The missile is faster on a straight. Preserve crossing room early
+          // instead of rewarding a retreat that ends against a wall.
+          if (!shell.done && shell.age >= .8 && shell.targetId === this.me.id) {
+            const gap = dist(shell,b);
+            if (gap < 2.7 && this.game.maze.visible(shell,b,SHOT)) {
+              const toward = bearing(shell,b);
+              const aligned = Math.max(0,Math.cos(angleDiff(toward,Math.atan2(shell.dy,shell.dx))));
+              const sideways = Math.abs((b.x-a.x)*Math.sin(toward)-(b.y-a.y)*Math.cos(toward))/dt;
+              const corner = this.game.maze.links[this.game.maze.cell(b)].length === 1;
+              risk = Math.max(risk,(2.7-gap)*aligned*(corner ? 4.1 : 2.3)/(1+sideways));
+            }
+          }
+          if (closest<BODY+SHOT+.015) {
+            risk=Math.max(risk,58+(BODY+SHOT+.015-closest)*55);
+          } else if (closest<.80) {
+            const tracking=shell.targetId===this.me.id?1:.55;
+            risk=Math.max(risk,9*((.80-closest)/.60)**2*tracking);
+          }
+        }
+      }
+      return risk;
+    }
+  }
+  global.TankMissileEvasion=MissileEvasion;
+})(globalThis);
+
+</script>
+<script>
+/* Hard difficulty controller. No module here receives a mutable simulation
+   clone to advance the game with: decisions end as drive, turn, press and held. */
+(function (global) {
+  'use strict';
+  const { idle, dist, angleDiff } = TankArena;
+  const { commandFor, ManeuverSearch } = TankManeuver;
+
+  class ExpertPilot {
+    constructor(id = 1) {
+      this.id = id;
+      this.hard = true;
+      this.model = new TankOpponentModel();
+      this.shadow = new TankShadowDefender();
+      this.navigation = null;
+      this.scene = null;
+      this.movement = new ManeuverSearch();
+      this.weapons = new TankFireControl();
+      this.counterplay = new TankCounterplay();
+      this.engagement = new TankEngagement();
+      this.salvo = new TankSalvoPlanner();
+      this.nextThink = 0;
+      this.lastWorld = null;
+      this.plan = { drive: 0, turn: 0 };
+      this.forecasts = [];
+      this.attack = null;
+      this.intent = 'advance';
+    }
+
+    invalidate(game, me, foe, input) {
+      const prev = this.lastWorld;
+      if (!prev) return true;
+      if (prev.alive !== foe.alive || prev.item !== me.item || prev.enemyItem !== foe.item) return true;
+      if (prev.drops !== game.items.length || prev.mineCount !== game.mines.length) return true;
+      if (game.time - prev.time < .025) return false;
+      if (dist(me, foe) < 6 && (input.press || input.edges?.includes(true))) return true;
+      const newest = game.bullets.at(-1);
+      if (newest && prev.newest !== newest && dist(newest, me) < 4.5) return true;
+      if (dist(me, foe) < 5 && Math.abs((input.drive || 0) - prev.drive) > 1.2) return true;
+      if (input.aim !== undefined && prev.aim !== undefined &&
+        Math.abs(angleDiff(input.aim, prev.aim)) > .85) return true;
+      return false;
+    }
+
+    snapshot(game, me, foe, input) {
+      return {
+        alive: foe.alive,
+        item: me.item,
+        enemyItem: foe.item,
+        drops: game.items.length,
+        mineCount: game.mines.length,
+        newest: game.bullets.at(-1),
+        drive: input.drive || 0,
+        aim: input.aim,
+        time: game.time
+      };
+    }
+
+    decide(game, me, foe, input) {
+      if (!this.scene || this.scene.source !== game.maze) {
+        this.scene = new TankPlanningScene(game);
+        this.navigation = new TankPositionPlanner(this.scene.world.maze);
+      }
+      game = this.scene.world;
+      this.forecasts = foe.alive ? this.model.predict(game, foe, input, me) : [];
+      this.shadow.addForecasts(game, me, foe, input, this.forecasts);
+      this.attack = this.weapons.aim(game, me, foe, this.forecasts);
+      this.attack = this.counterplay.refine(game, me, foe, input, this.forecasts,
+        this.weapons.finalists || [], this.attack);
+      this.attack = this.salvo.select(game, me, foe, this.forecasts, this.weapons, this.attack);
+      const normal = this.navigation.select(game, me, foe, this.forecasts, this.attack);
+      const visible = this.engagement.observe(game, me, foe, this.weapons);
+      const goal = this.engagement.objective(game, me, foe, this.navigation, normal,
+        this.forecasts, this.attack, visible);
+      const guided = game.bullets.some(b => b.kind === 'seeker' && dist(me,b) < 6.8);
+      const field = new TankThreatField(game, me, foe, input, this.forecasts, guided ? 16 : 12);
+      field.beams = this.weapons.ordnance.beamPaths(game, foe, this.forecasts[0]?.line, input);
+      const window = new TankAttackWindow(game, me, foe, this.forecasts);
+      this.plan = this.movement.search(game, me, foe, goal, this.attack, field, window);
+      this.intent = goal.type;
+      this.lastWorld = this.snapshot(game, me, foe, input);
+      const close = dist(me, foe) < 3.6;
+      this.nextThink = game.time + (close || field.incoming() ? .064 : .095);
+    }
+
+    control(game, dt, input = idle()) {
+      const cmd = idle();
+      const me = game.tanks[this.id];
+      const foe = game.tanks[1 - this.id];
+      if (!me.alive) return cmd;
+      this.model.observe(game, foe, input);
+      if (game.time >= this.nextThink || this.invalidate(game, me, foe, input)) {
+        this.decide(game, me, foe, input);
+      }
+      const motion = commandFor(this.plan, me, dt);
+      cmd.drive = motion.drive;
+      cmd.turn = motion.turn;
+      const policy = this.engagement.firePolicy(game, me, foe, this.attack);
+      this.weapons.trigger(this.scene.world, me, foe, dt, cmd, this.attack, this.forecasts, policy, input);
+      this.salvo.notify(game, this.weapons, this.attack);
+      return cmd;
+    }
+  }
+
+  global.ExpertPilot = ExpertPilot;
+})(globalThis);
+
+</script>
+<script>
+(function(global){
+  'use strict';
+  const swatches={'橙':'#ff882c','蓝':'#398def','红':'#ed4547','绿':'#46bc50','紫':'#a368e3','黄':'#f3c631','粉':'#f37fb3','青':'#20b9bb','黑':'#464953','白':'#ffffff'};
+  const ink='#282b3b',colors=[swatches.橙,swatches.白];
+  const palette={shield:'#159bc7',rapid:'#da950e',triple:'#17a56d',laser:'#ed2966',seeker:'#db6919',frag:'#0aa193',mine:'#3d4a60'};
+  function box(c,x,y,w,h,r,fill,stroke){
+    c.beginPath();c.roundRect(x,y,w,h,r);c.fillStyle=fill;c.fill();
+    if(stroke){c.strokeStyle=stroke;c.stroke();}
+  }
+  function circle(c,x,y,r,fill,stroke){
+    c.beginPath();c.arc(x,y,r,0,2*Math.PI);if(fill){c.fillStyle=fill;c.fill();}if(stroke){c.strokeStyle=stroke;c.stroke();}
+  }
+  function tank(c,x,y,size,a,id,flash=false){
+    c.save();c.translate(x,y);c.rotate(a);c.scale(size,size);c.lineJoin='round';c.lineWidth=.025;
+    for(const side of [-1,1]){
+      const y=side*.142;box(c,-.192,y-.042,.355,.084,.018,'#404452',ink);
+      c.strokeStyle='#7b8088';c.lineWidth=.012;
+      for(let k=-.15;k<.15;k+=.059){c.beginPath();c.moveTo(k,y-.027);c.lineTo(k+.008,y+.026);c.stroke();}
+    }
+    c.lineWidth=.023;box(c,-.165,-.105,.302,.21,.028,colors[id],ink);
+    box(c,.025,-.034,.227,.068,.009,colors[id],ink);
+    circle(c,-.012,0,.09,colors[id],ink);
+    c.lineWidth=.011;c.beginPath();c.arc(-.013,0,.062,3.65,5.25);c.strokeStyle='#fff8';c.stroke();
+    if(flash){c.fillStyle='#ffcf51';c.beginPath();c.moveTo(.245,-.03);c.lineTo(.34,-.055);c.lineTo(.31,0);c.lineTo(.35,.035);c.lineTo(.245,.025);c.fill();}
+    c.restore();
+  }
+  function missile(c,x,y,a,scale,color){
+    c.save();c.translate(x,y);c.rotate(a);c.scale(scale,scale);
+    c.lineWidth=.012;c.lineJoin='round';
+    c.beginPath();c.moveTo(.14,0);c.quadraticCurveTo(.078,-.055,-.055,-.038);
+    c.lineTo(-.125,-.079);c.lineTo(-.112,-.022);c.lineTo(-.118,.022);
+    c.lineTo(-.125,.079);c.lineTo(-.055,.038);c.quadraticCurveTo(.078,.055,.14,0);
+    c.fillStyle=color;c.fill();c.strokeStyle=ink;c.stroke();c.restore();
+  }
+  function beam(c,lines,color,dashed){
+    c.save();c.lineJoin=c.lineCap='round';if(dashed)c.setLineDash([.055,.078]);
+    c.beginPath();for(let i=0;i<lines.length;i++){
+      const [x,y,u,v]=lines[i];if(i===0)c.moveTo(x,y);c.lineTo(u,v);
+    }
+    c.strokeStyle=ink;c.lineWidth=dashed?.032:.075;c.stroke();
+    c.strokeStyle=color;c.lineWidth=dashed?.021:.05;c.stroke();c.restore();
+  }
+  function icon(c,x,y,kind){
+    c.save();c.translate(x,y);c.lineWidth=.024;
+    box(c,-.175,-.175,.35,.35,.057,'#fffdf7',palette[kind]);c.strokeStyle=palette[kind];c.fillStyle=palette[kind];
+    c.lineWidth=.033;c.lineJoin='round';c.lineCap='round';
+    function path(points,fill=false){c.beginPath();c.moveTo(...points[0]);for(const p of points.slice(1))c.lineTo(...p);if(fill)c.fill();else c.stroke();}
+    switch(kind){
+      case 'shield':path([[0,-.10],[.086,-.065],[.072,.04],[0,.11],[-.072,.04],[-.086,-.065]],true);break;
+      case 'rapid':for(const s of [-.068,.012])path([[s,-.072],[s+.064,0],[s,.072]]);break;
+      case 'triple':path([[.085,-.077],[-.087,0],[.085,.077]]);path([[-.087,0],[.075,0]]);break;
+      case 'laser':path([[-.079,.082],[.088,-.091]]);circle(c,-.07,.07,.037,palette[kind]);break;
+      case 'seeker':missile(c,0,0,-Math.PI/4,1,palette.seeker);break;
+      case 'frag':circle(c,0,0,.048,palette[kind]);for(let k=0;k<8;k++){c.rotate(Math.PI/4);path([[.079,0],[.11,0]]);}break;
+      case 'mine':circle(c,0,.02,.082,palette[kind]);circle(c,0,.02,.027,'#ff4c63');path([[-.08,-.056],[-.105,-.086]]);path([[.08,-.056],[.105,-.086]]);break;
+    }
+    c.restore();
+  }
+  class Renderer{
+    constructor(canvas,field){this.canvas=canvas;this.field=field;this.c=canvas.getContext('2d');}
+    size(m){
+      const margin=.13,unit=Math.min(this.field.clientWidth/(m.cols+2*margin),this.field.clientHeight/(m.rows+2*margin));
+      if(unit<=0)return 0;
+      const w=Math.max(1,Math.floor((m.cols+2*margin)*unit)),h=Math.max(1,Math.floor((m.rows+2*margin)*unit));
+      const ratio=Math.min(window.devicePixelRatio||1,2.5),dw=Math.round(w*ratio),dh=Math.round(h*ratio);
+      if(this.canvas.width!==dw||this.canvas.height!==dh||this.canvas.style.width!==w+'px'){
+        this.canvas.width=dw;this.canvas.height=dh;this.canvas.style.width=w+'px';this.canvas.style.height=h+'px';
+      }
+      const s=unit*ratio;this.c.setTransform(s,0,0,s,margin*s,margin*s);return unit;
+    }
+    draw(g,names){
+      const c=this.c,m=g.maze,unit=this.size(m);if(!unit)return;
+      c.fillStyle='#eeede8';c.fillRect(-.2,-.2,m.cols+.4,m.rows+.4);
+      c.fillStyle='#f2f1eb';c.fillRect(0,0,m.cols,m.rows);
+      c.fillStyle='#303341';for(const w of m.walls)c.fillRect(w.x1,w.y1,w.x2-w.x1,w.y2-w.y1);
+      for(const p of g.items)icon(c,p.x,p.y,p.kind);
+      for(const p of g.mines){c.lineWidth=.017;circle(c,p.x,p.y,.092,'#4b4d55',ink);circle(c,p.x,p.y,.031,p.armed?'#ff365d':'#eac970');}
+      for(const e of g.effects){
+        if(e.type!=='smoke')continue;
+        const f=1-e.life/e.total,x=e.x+e.jitter*f,y=e.y-.06*f;
+        c.save();c.globalAlpha=(1-f)*.48;
+        const radius=(e.small?.018:.032)+f*(e.small?.038:.088);
+        circle(c,x,y,radius,'#60626a');
+        if(e.target!=null)circle(c,x,y,radius*.76,colors[e.target]);
+        c.restore();
+      }
+      for(const t of g.tanks)if(t.alive&&t.item==='laser'){
+        beam(c,g.laserPath(t,3.6,true),colors[t.id],true);
+      }
+      for(const b of g.bullets){
+        if(b.kind==='seeker'){missile(c,b.x,b.y,Math.atan2(b.dy,b.dx),1,colors[b.targetId]||'#b2b4b7');continue;}
+        if(b.kind==='fragment'){
+          c.save();c.translate(b.x,b.y);c.rotate(Math.atan2(b.dy,b.dx)+b.age*b.spin);
+          c.beginPath();c.moveTo(.062,0);c.lineTo(-.038,-.023);c.lineTo(-.017,.026);
+          c.closePath();c.fillStyle='#393b41';c.fill();c.restore();continue;
+        }
+        const tint={seeker:'#f0892b',fragment:'#218c83',frag:'#218c83',rapid:'#50433b',triple:'#198058'};
+        circle(c,b.x,b.y,b.kind==='fragment'?.025:b.kind==='frag'?.062:.035,tint[b.kind]||ink);
+      }
+      for(const t of g.tanks){
+        if(!t.alive)continue;
+        if(t.item==='shield'){c.lineWidth=.022;circle(c,t.x,t.y,.255,'#42c8f224','#159ac9');}
+        tank(c,t.x,t.y,1,t.a,t.id,t.flash>0);
+        c.save();const font=Math.max(.14,Math.min(.27,12/unit));c.font='bold '+font+'px "Segoe UI","Microsoft YaHei",sans-serif';
+        c.textAlign='center';c.textBaseline='bottom';c.lineJoin='round';c.lineWidth=.054;c.strokeStyle='#f2f1eb';c.fillStyle=ink;
+        const y=t.y>.59?t.y-.24:t.y+.45;
+        const half=c.measureText(names[t.id]).width/2+.03;const x=Math.max(half,Math.min(m.cols-half,t.x));
+        c.strokeText(names[t.id],x,y);c.fillText(names[t.id],x,y);c.restore();
+      }
+      for(const e of g.effects){
+        if(e.type==='smoke')continue;
+        c.save();const f=1-e.life/e.total;c.globalAlpha=Math.min(1,(1-f)*1.8);
+        if(e.type==='laser')beam(c,e.lines,colors[e.owner],false);
+        else if(e.type==='blast'||e.type==='spark'){
+          c.lineWidth=.022;circle(c,e.x,e.y,.12+f*.42,null,'#c55d2a');
+          for(let k=0;k<12;k++){const a=k*2.39996,r=(.16+f*.47)*(.65+(k%4)*.12);
+            circle(c,e.x+Math.cos(a)*r,e.y+Math.sin(a)*r,.047*(1-f*.6),k%2?'#dd742f':'#464957');}
+        }else{c.lineWidth=.02;circle(c,e.x,e.y,.2+.22*f,null,e.type==='shield'?'#199ec6':'#ca8f2e');}
+        c.restore();
+      }
+    }
+  }
+  function drawPortrait(canvas,id){
+    const c=canvas.getContext('2d');c.clearRect(0,0,canvas.width,canvas.height);
+    tank(c,canvas.width/2,canvas.height/2,canvas.height*2,-Math.PI/2,id);
+  }
+  global.TankArt={Renderer,drawPortrait,tank,swatches,colors};
+})(globalThis);
+
+</script>
+<script>
+(()=>{
+  'use strict';
+  const {Game,STEP,ITEMS,idle,angleDiff,clamp}=TankArena;
+  const $=id=>document.getElementById(id),panel=$('panel'),panelBody=$('panel-body');
+  const renderer=new TankArt.Renderer($('board'),$('field'));
+  let device='',mode='',view='device',helpReturn='pause',running=false,active=false,ending=0;
+  let names=['玩家 1','GPT'],game=new Game(),inputs=[idle(),idle()],keys=new Set(),last=0,debt=0;
+  let stickPointer=null,triggerPointer=null,stickAim=null,stickForce=0,savedKey='tank-arena:last-session:v1';
+  let dirty=true;
+  new ResizeObserver(()=>{dirty=true;}).observe($('field'));
+  function fireEdge(i,down){
+    const input=inputs[i];if(input.held===down)return;
+    (input.edges ||= []).push(down);input.held=down;
+  }
+  function readSaved(){try{return JSON.parse(localStorage.getItem(savedKey));}catch{return null;}}
+  function save(){
+    if(!active)return;
+    try{localStorage.setItem(savedKey,JSON.stringify({names:[...names],score:[...game.score],date:Date.now()}));}catch{}
+  }
+  function resetInput(){
+    keys.clear();inputs=[idle(),idle()];stickPointer=null;triggerPointer=null;stickAim=null;stickForce=0;
+    $('stick').firstElementChild.style.transform='';$('trigger').classList.remove('down');
+    for(const t of game.tanks)if(t.rapid){t.rapid=null;t.item=null;}
+  }
+  function action(label,fn,cls='action'){
+    const b=document.createElement('button');b.className=cls;b.textContent=label;b.onclick=fn;return b;
+  }
+  function section(title,info){
+    running=false;dirty=true;resetInput();panelBody.replaceChildren();
+    const h=document.createElement('h1');h.id='panel-title';h.textContent=title;panelBody.append(h);
+    if(info){const p=document.createElement('p');p.textContent=info;panelBody.append(p);}
+    if(!panel.open)panel.showModal();panel.scrollTop=0;
+  }
+  function group(cls){const d=document.createElement('div');d.className=cls;panelBody.append(d);return d;}
+  function deviceScreen(){
+    document.body.classList.remove('mobile');view='device';section('选择游戏设备','选择你的操作方式，进入迷宫对战。');
+    const cards=group('cards');
+    for(const [type,label,hint] of [['pc','电脑','同屏双人 / 人机'],['mobile','手机','触屏人机对战']]){
+      const b=action('',()=>{device=type;document.body.classList.toggle('mobile',type==='mobile');modeScreen();},'card');
+      const icon=document.createElement('i');icon.className='device '+type;const strong=document.createElement('b');strong.textContent=label;
+      const small=document.createElement('small');small.textContent=hint;b.append(icon,strong,small);cards.append(b);
+    }
+    const saved=readSaved();
+    if(saved && Array.isArray(saved.names)&&Array.isArray(saved.score)){
+      const line=group('history');line.textContent='上次对战　'+saved.names[0]+'　'+saved.score[0]+' ∶ '+saved.score[1]+'　'+String(saved.names[1]).replace(/^GPT [低中高]$/,'GPT');
+    }
+  }
+  const difficulties={easy:'简单',medium:'中等',hard:'困难'};
+  function modeScreen(){
+    view='mode';section(device==='pc'?'选择对战模式':'选择人机对手',device==='pc'?'共用一副键盘，或挑战本地人机。':'左轮盘移动和转向，右侧按钮开火。');
+    const list=group('stack');
+    if(device==='pc')list.append(action('同屏双人',()=>colorScreen('duel')));
+    for(const [key,label] of Object.entries(difficulties))list.append(action('挑战 GPT · '+label,()=>colorScreen(key),key==='hard'?'action primary':'action'));
+    panelBody.append(action('← 返回设备选择',deviceScreen,'back'));
+  }
+  function colorScreen(which){
+    view='colors';
+    const duel=which==='duel', {swatches}=TankArt;
+    section('选择坦克颜色',duel?'为两位玩家选择车身颜色。':'选择你的车身颜色。GPT 使用白色坦克。');
+    const selected=['橙',duel?'蓝':'白'],buttons=[];
+    for(let id=0;id<(duel?2:1);id++){
+      const row=group('color-row'),label=document.createElement('strong');label.textContent=duel?'玩家 '+(id+1):'我的坦克';row.append(label);
+      const choices=document.createElement('div');choices.className='swatches';row.append(choices);
+      for(const [name,hex] of Object.entries(swatches)){
+        const btn=action('',()=>{selected[id]=name;refresh();},'swatch');
+        btn.style.setProperty('--paint',hex);btn.title=name+'色';btn.setAttribute('aria-label',label.textContent+' '+name+'色');
+        choices.append(btn);buttons.push({id,name,btn});
+      }
+    }
+    function refresh(){for(const {id,name,btn} of buttons){
+      btn.setAttribute('aria-pressed',String(name===selected[id]));
+      btn.disabled=name===selected[1-id];
+    }}
+    refresh();panelBody.append(action('开始对战',()=>{
+      for(let i=0;i<2;i++)TankArt.colors[i]=swatches[selected[i]];
+      document.querySelectorAll('.portrait').forEach((c,i)=>{
+        TankArt.drawPortrait(c,i);c.parentElement.style.setProperty('--paint',TankArt.colors[i]);
+      });
+      start(which);
+    },'action primary'),action('← 返回',modeScreen,'back'));
+  }
+  function play(){
+    view='play';panel.close();last=0;debt=0;running=true;resetInput();$('board').focus();
+  }
+  function start(which){
+    mode=which;active=true;ending=0;names=['玩家 1',mode==='duel'?'玩家 2':'GPT'];
+    game=new Game({bot:mode!=='duel',difficulty:mode});
+    $('touch-controls').hidden=device!=='mobile';$('mode-label').textContent=mode==='duel'?'同屏双人':'本地人机 · '+difficulties[mode];
+    $('name0').textContent=names[0];$('name1').textContent=names[1];play();sync();
+  }
+  function exitMatch(){
+    save();active=false;running=false;ending=0;$('touch-controls').hidden=true;document.body.classList.remove('mobile');
+    $('mode-label').textContent='迷宫对决';deviceScreen();sync();
+  }
+  function pause(){
+    if(!active)return;view='pause';section('对战暂停',names[0]+'　'+game.score[0]+' ∶ '+game.score[1]+'　'+names[1]);
+    const list=group('stack');list.append(action('继续对战',play,'action primary'),action('玩法与道具',()=>guide('pause')),action('保存比分并退出',exitMatch));
+  }
+  function guide(back){
+    helpReturn=back;view='guide';
+    section('玩法与道具',device==='mobile'?'左轮盘朝目标方向推动，右手点按开火。':'P1 用 W/S 前进后退、A/D 转向、空格开火。P2 用方向键和回车。');
+    const p=document.createElement('p');p.textContent='普通炮每点一发，场上最多五发，十秒后消失。反弹会误伤自己。首辆坦克阵亡后再战 2.5 秒，双亡平局。';panelBody.append(p);
+    const dl=document.createElement('dl');dl.className='rules';for(const [key,[name,desc]] of Object.entries(ITEMS)){
+      const row=document.createElement('div'),dt=document.createElement('dt'),dd=document.createElement('dd');
+      dt.textContent=name;dd.textContent=key==='rapid'?'按住起转后连续扫射，可边走边转；短点消耗道具。':desc;row.append(dt,dd);dl.append(row);
+    }
+    panelBody.append(dl,action(back==='pause'?'返回菜单':'继续对战',back==='pause'?pause:play,'action primary'));
+  }
+  $('menu').onclick=pause;$('guide').onclick=()=>{if(active)guide('play');};
+  panel.addEventListener('cancel',e=>{
+    e.preventDefault();if(view==='pause')play();else if(view==='guide'){helpReturn==='pause'?pause():play();}
+    else if(view==='colors')modeScreen();else if(view==='mode')deviceScreen();
+  });
+  const binds=new Set(['KeyW','KeyA','KeyS','KeyD','Space','ArrowUp','ArrowDown','ArrowLeft','ArrowRight','Enter','NumpadEnter']);
+  const playerFor=k=>k==='Space'?0:(k==='Enter'||k==='NumpadEnter')?1:-1;
+  window.addEventListener('keydown',e=>{
+    if(!running || e.altKey || e.ctrlKey || e.metaKey)return;
+    if(e.code==='Escape'){e.preventDefault();pause();return;}
+    if(device!=='pc'||!binds.has(e.code))return;e.preventDefault();
+    if(keys.has(e.code)||e.repeat)return;keys.add(e.code);
+    const i=playerFor(e.code);if(i>=0 && (i===0||mode==='duel')){fireEdge(i,true);}
+  });
+  window.addEventListener('keyup',e=>{
+    keys.delete(e.code);const i=playerFor(e.code);
+    if(i>=0 && running && device==='pc')fireEdge(i,i===1&&(keys.has('Enter')||keys.has('NumpadEnter')));
+  });
+  function moveStick(e){
+    const el=$('stick'),r=el.getBoundingClientRect(),screenX=e.clientX-r.left-r.width/2,screenY=e.clientY-r.top-r.height/2;
+    const rotated=matchMedia('(orientation:portrait)').matches;
+    const dx=rotated?screenY:screenX,dy=rotated?-screenX:screenY;
+    const len=Math.hypot(dx,dy),radius=r.width*.32,j=len>radius?radius/len:1;
+    el.firstElementChild.style.transform='translate('+dx*j+'px,'+dy*j+'px)';
+    stickForce=clamp((len/radius-.12)/.88,0,1);stickAim=stickForce>0?Math.atan2(dy,dx):null;
+  }
+  const stick=$('stick'),trigger=$('trigger');
+  stick.onpointerdown=e=>{if(!running||stickPointer!==null)return;e.preventDefault();stickPointer=e.pointerId;stick.setPointerCapture(e.pointerId);moveStick(e);};
+  stick.onpointermove=e=>{if(stickPointer===e.pointerId)moveStick(e);};
+  stick.onpointerup=stick.onpointercancel=stick.onlostpointercapture=e=>{
+    if(stickPointer!==e.pointerId)return;stickPointer=null;stickForce=0;stickAim=null;stick.firstElementChild.style.transform='';
+  };
+  trigger.onpointerdown=e=>{
+    if(!running||triggerPointer!==null)return;e.preventDefault();triggerPointer=e.pointerId;trigger.setPointerCapture(e.pointerId);
+    trigger.classList.add('down');fireEdge(0,true);
+  };
+  trigger.onpointerup=trigger.onpointercancel=trigger.onlostpointercapture=e=>{
+    if(triggerPointer!==e.pointerId)return;triggerPointer=null;fireEdge(0,false);trigger.classList.remove('down');
+  };
+  for(const el of [stick,trigger])el.oncontextmenu=e=>e.preventDefault();
+  function controls(){
+    if(device==='mobile'){
+      const p=inputs[0];p.aim=stickAim??undefined;
+      p.drive=stickAim===null?0:stickForce*Math.max(0,Math.cos(angleDiff(stickAim,game.tanks[0].a)));
+    }else{
+      inputs[0].drive=Number(keys.has('KeyW'))-Number(keys.has('KeyS'));
+      inputs[0].turn=Number(keys.has('KeyD'))-Number(keys.has('KeyA'));
+      inputs[1].drive=Number(keys.has('ArrowUp'))-Number(keys.has('ArrowDown'));
+      inputs[1].turn=Number(keys.has('ArrowRight'))-Number(keys.has('ArrowLeft'));
+    }
+  }
+  function setText(el,value){if(el.textContent!==value)el.textContent=value;}
+  function sync(){
+    setText($('round'),String(game.round).padStart(2,'0'));
+    for(const t of game.tanks){
+      const i=t.id;setText($('score'+i),String(game.score[i]));
+      setText($('item'+i),t.alive?(t.item?ITEMS[t.item][0]:''):'阵亡');
+      const available=5-game.count(i),ammo=$('ammo'+i);ammo.setAttribute('aria-label','可用普通弹 '+available+' 发');
+      for(let j=0;j<5;j++)ammo.children[j].classList.toggle('ready',j<available);
+    }
+  }
+  function frame(now){
+    if(running){
+      const elapsed=last?Math.min(.1,(now-last)/1000):0;last=now;
+      if(ending){
+        ending=Math.max(0,ending-elapsed);
+        if(!ending){game.newRound();resetInput();debt=0;}
+      }else{
+        debt+=elapsed;while(debt>=STEP){
+          controls();const result=game.step(STEP,inputs);debt-=STEP;
+          if(result){ending=.12;save();break;}
+        }
+      }
+      sync();
+    }
+    if(running||dirty){renderer.draw(game,names);dirty=false;}
+    requestAnimationFrame(frame);
+  }
+  document.addEventListener('visibilitychange',()=>{if(document.hidden&&running)pause();});
+  window.addEventListener('blur',()=>{if(running)pause();});
+  window.addEventListener('pagehide',save);
+  document.querySelectorAll('.portrait').forEach((c,i)=>TankArt.drawPortrait(c,i));
+  for(const i of [0,1])for(let j=0;j<5;j++)$('ammo'+i).append(document.createElement('i'));
+  sync();deviceScreen();requestAnimationFrame(frame);
+})();
+
+</script>
+</body></html>
