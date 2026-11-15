@@ -44,10 +44,10 @@ patched=replaceOnce(patched,
   "view='play';panel.close();last=0;debt=0;running=true;resetInput();$('board').focus();",
   "view='play';panel.close();last=0;debt=0;running=true;resetInput();$('board').focus();release.sync();");
 patched=replaceOnce(patched,"deviceScreen();sync();","deviceScreen();sync();release.sync();");
-patched=replaceOnce(patched,"if(!ending){game.newRound();resetInput();debt=0;}",
-  "if(!ending){game.newRound();resetInput();debt=0;release.sync();}");
-patched=replaceOnce(patched,"if(result){ending=.12;save();break;}",
-  "if(result){ending=.12;save();release.roundEnded();break;}");
+patched=replaceOnce(patched,"if(--ending===0){game.newRound();resetInput();}",
+  "if(--ending===0){game.newRound();resetInput();release.sync();}");
+patched=replaceOnce(patched,"if(game.step(STEP,inputs)){ending=Math.ceil(.12/STEP);save();}",
+  "if(game.step(STEP,inputs)){ending=Math.ceil(.12/STEP);save();release.roundEnded();if(!running)break;}");
 patched=replaceOnce(patched,"  sync();deviceScreen();requestAnimationFrame(frame);",`
   release.connect({
     inRound:()=>active && !game.result,

@@ -39,6 +39,7 @@ const server=http.createServer((req,res)=>{
     await page.goto(origin);
     await page.getByText('v'+current.version+' · 更新公告',{exact:true}).click();
     await page.getByRole('button',{name:/电脑/}).click();
+    await page.getByRole('button',{name:'对战模式',exact:true}).click();
     await page.getByRole('button',{name:'挑战 GPT · 困难'}).click();
     await page.getByRole('button',{name:'开始对战'}).click();
     await page.waitForFunction(()=>testGame.time>.2);
@@ -87,6 +88,7 @@ const server=http.createServer((req,res)=>{
       p.on('pageerror',e=>errors.push(e.message));
       await p.goto(origin);
       await p.getByRole('button',{name:new RegExp(device)}).click();
+      await p.getByRole('button',{name:'对战模式',exact:true}).click();
       await p.getByRole('button',{name:'挑战 GPT · 困难'}).click();
       await p.getByRole('button',{name:'开始对战'}).click();
       await p.getByRole('button',{name:'v'+current.version+' 更新公告',exact:true}).click();
@@ -98,7 +100,54 @@ const server=http.createServer((req,res)=>{
       assert.equal(await p.locator('#mode-label').textContent(),'本地人机 · 困难');
       await p.close();
     }
+    for(const device of ['电脑','手机']) {
+      published=false;
+      const p=await browser.newPage({viewport:device==='手机'?{width:390,height:844}:{width:1280,height:800}});
+      p.on('pageerror',e=>errors.push(e.message));
+      await p.addInitScript(()=>Object.defineProperty(window,'TankArena',{configurable:true,set(api) {
+        const Base=api.Game;
+        api.Game=class extends Base {constructor(...args){super(...args);window.testGame=this;}};
+        Object.defineProperty(window,'TankArena',{value:api});
+      }}));
+      await p.goto(origin);
+      await p.getByRole('button',{name:new RegExp(device)}).click();
+      await p.getByRole('button',{name:'观战模式',exact:true}).click();
+      await p.getByLabel('参战数量',{exact:true}).selectOption('5');
+      for (const field of await p.locator('.bot-level').all()) await field.getByLabel('简单',{exact:true}).check();
+      await p.getByRole('button',{name:'开始观战',exact:true}).click();
+      assert.equal(await p.evaluate(()=>testGame.tanks.length),5);
+      assert.equal(await p.locator('#touch-controls').isVisible(),false);
+      await p.evaluate(()=>{
+        testGame.marker='same';
+        // Stationary actors make the settlement timing test deterministic.
+        testGame.pilots=testGame.pilots.map(()=>({control:()=>TankArena.idle()}));
+      });
+      for (const rate of [2,1,4]) {
+        await p.getByRole('button',{name:rate+'×',exact:true}).click();
+        assert.equal(await p.getByRole('button',{name:rate+'×',exact:true}).getAttribute('aria-pressed'),'true');
+        assert.equal(await p.evaluate(()=>testGame.marker),'same');
+      }
+      published=true;
+      await p.evaluate(()=>window.dispatchEvent(new Event('online')));
+      await p.waitForFunction(()=>!document.getElementById('release-notice').hidden);
+      assert.equal(await p.locator('#panel').evaluate(el=>el.open),false);
+      assert.equal(await p.locator('#release-notice button').isDisabled(),true);
+      await p.evaluate(()=>{
+        testGame.bullets=[];testGame.mines=[];testGame.items=[];
+        for(let i=0;i<4;i++) testGame.hit(testGame.tanks[i]);
+      });
+      await p.getByText('本局已结束 · 有新版本',{exact:true}).waitFor({timeout:8000});
+      await p.waitForTimeout(300);
+      assert.equal(await p.evaluate(()=>testGame.round),1);
+      assert.equal(await p.evaluate(()=>testGame.result.winner),4);
+      assert.equal(await p.evaluate(()=>JSON.parse(localStorage.getItem('tank-arena:last-session:v1')).score[4]),1);
+      await p.getByRole('button',{name:'继续当前版本',exact:true}).click();
+      await p.waitForFunction(()=>testGame.round===2 && testGame.time>.1);
+      assert.equal(await p.evaluate(()=>testGame.tanks.length),5);
+      assert.equal(await p.getByRole('button',{name:'4×',exact:true}).getAttribute('aria-pressed'),'true');
+      await p.close();
+    }
     assert.deepEqual(errors,[]);
-    console.log('PASS deployment consistency, live notice, 2.5s settlement, save, defer, retry, manual refresh, PC/mobile and offline');
+    console.log('PASS deployment consistency, live notice, 2.5s settlement, save, defer, retry, manual refresh, PC/mobile, five-bot 4x settlement and offline');
   }finally{await browser.close();}
 })().catch(e=>{console.error(e);process.exitCode=1;}).finally(()=>server.close());

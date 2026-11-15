@@ -26,6 +26,18 @@ body.mobile main{height:calc(var(--game-h) - 36px);width:100%;padding:4px max(88
 .color-row{margin:12px 0 17px}.color-row strong{font-size:14px}.swatches{display:flex;gap:6px;flex-wrap:wrap;margin-top:6px}
 .stick-setting{display:grid;grid-template-columns:1fr auto;align-items:center;margin:8px 0 12px;font-size:14px;font-weight:650}
 .stick-setting output{font-variant-numeric:tabular-nums;color:#575b66}.stick-setting input{grid-column:1/-1;width:100%;height:30px;margin:0;accent-color:#c9581e}
+.bot-level{display:flex;gap:6px;border:0;margin:0 0 14px;padding:0;min-width:0}
+.bot-level legend{font-size:14px;font-weight:700;padding:0;margin-bottom:6px}
+.bot-level legend::before{content:"";display:inline-block;width:11px;height:11px;margin-right:7px;background:var(--paint);border:1px solid var(--ink);border-radius:3px}
+.bot-level label{position:relative;flex:1;cursor:pointer}.bot-level input{position:absolute;opacity:0;width:1px;height:1px}
+.bot-level span{display:block;border:1px solid #b9bab7;border-radius:5px;padding:8px;text-align:center;font-size:14px;background:white}
+.bot-level input:checked+span{background:var(--ink);border-color:var(--ink);color:white}.bot-level input:focus-visible+span{outline:3px solid #dc6325;outline-offset:2px}
+.bot-count{display:flex;align-items:center;gap:14px;margin-bottom:14px;font-weight:650;font-size:14px}.bot-count select{font:inherit;color:var(--ink);background:white;border:1px solid #b9bab7;border-radius:5px;padding:5px 10px}
+#watch-speed{display:flex;align-items:center;gap:3px}#watch-speed span{font-size:12px;margin-right:4px}#watch-speed button{padding:3px 9px;border:1px solid #b9bab7;border-radius:4px;background:var(--paper);font-weight:700;min-height:27px}#watch-speed button[aria-pressed=true]{background:var(--ink);color:white}
+.scoreboard.multi{display:grid;grid-template-columns:repeat(var(--seats),minmax(0,1fr));gap:5px;padding:0 8px}.multi .versus{display:none}.multi .player{gap:4px;min-width:0;justify-content:center;flex-direction:row;text-align:left}.multi .player-text{min-width:0}.multi .ammo{justify-content:flex-start}.multi .score{font-size:23px;margin:0 2px}.multi .portrait{width:27px;height:26px}.multi .player-text strong{font-size:12px}
+body.mobile .multi .portrait{display:none}
+body.mobile .roster .bot-level{display:flex;align-items:center;margin-bottom:6px}body.mobile .roster .bot-level legend{float:left;margin:0 5px 0 0}body.mobile .roster .bot-level span{padding:6px}
+body.mobile.watching main{padding-left:max(6px,env(safe-area-inset-left));padding-right:max(6px,env(safe-area-inset-right))}
 .swatch{background:var(--paint);border:2px solid #656776;border-radius:50%;width:29px;height:29px;padding:0}
 .swatch[aria-pressed=true]{outline:2px solid #242836;outline-offset:2px}.swatch:disabled{opacity:.22}.color-row~.back{margin-left:14px}
 @media(orientation:portrait){
@@ -55,8 +67,8 @@ body.mobile .scoreboard{height:54px}body.mobile .portrait{height:36px;width:38px
 
 
 
-<meta name="tank-version" content="1.1.1">
-<meta name="tank-build" content="f7aa532d2f66e8dc">
+<meta name="tank-version" content="1.2.0">
+<meta name="tank-build" content="fc6397e8c22a1f6b">
 <style>
 #release-version{font-variant-numeric:tabular-nums}
 .release-notes{margin:14px 0;border-top:1px solid #cccac3;padding-top:10px;font-size:12px}
@@ -79,7 +91,7 @@ background:#242836;color:#faf9f5;font-size:12px;box-shadow:0 2px 8px #20233133}
 <header><div class="brand"><span class="brand-mark" aria-hidden="true"></span><strong>坦克迷阵</strong><span class="wordmark">TANK ARENA</span></div>
 <nav aria-label="对战操作"><button id="guide" class="tool" title="玩法"><span aria-hidden="true">?</span> 玩法</button><button id="menu" class="tool" title="暂停菜单"><span aria-hidden="true">Ⅱ</span> 菜单</button></nav></header>
 <main>
-<section class="hud"><div class="round"><i></i>第 <b id="round">01</b> 局</div><div class="mode-tag" id="mode-label">迷宫对决</div></section>
+<section class="hud"><div class="round"><i></i>第 <b id="round">01</b> 局</div><div id="watch-speed" role="group" aria-label="观战倍速" hidden><span>倍速</span><button type="button" value="1" aria-pressed="true">1×</button><button type="button" value="2" aria-pressed="false">2×</button><button type="button" value="4" aria-pressed="false">4×</button></div><div class="mode-tag" id="mode-label">迷宫对决</div></section>
 <div class="field" id="field"><canvas id="board" aria-label="坦克对战迷宫"></canvas></div>
 <section class="scoreboard" aria-label="当前比分">
 <div class="player left"><canvas class="portrait" width="96" height="90" aria-hidden="true"></canvas><div class="player-text"><strong id="name0">玩家 1</strong><div class="ammo" id="ammo0"></div><small id="item0"></small></div><b class="score" id="score0">0</b></div>
@@ -174,9 +186,14 @@ background:#242836;color:#faf9f5;font-size:12px;box-shadow:0 2px 8px #20233133}
     return Math.max(0,along-Math.sqrt(discr));
   }
   const idle=()=>({drive:0,turn:0,held:false,press:0});
+  function createPilot(level,id){
+    return ['medium','hard'].includes(level) ? new global.TankPilot(level,id) : new EasyPilot(id);
+  }
   class Game {
     constructor(options={}){
-      this.options=options;this.score=[0,0];this.round=0;this.newRound();
+      if(options.botLevels && (options.botLevels.length<2 || options.botLevels.length>5))
+        throw new RangeError('观战需要 2 至 5 台坦克');
+      this.options=options;this.score=Array(options.botLevels?.length ?? 2).fill(0);this.round=0;this.newRound();
     }
     newRound(){
       const sizes=[[13,7],[12,7],[11,7],[12,8]];
@@ -184,17 +201,37 @@ background:#242836;color:#faf9f5;font-size:12px;box-shadow:0 2px 8px #20233133}
       this.maze=new Maze(c,r);this.time=0;this.finishAt=null;this.round++;this.nextDrop=8;
       this.bullets=[];this.laserHits=[];this.items=[];this.mines=[];this.effects=[];this.result=null;
       const flip=randomInt(2);
-      this.tanks=[0,1].map(i=>({id:i,x:(i^flip)?c-1.5:1.5,y:1.5+randomInt(r-2),a:(i^flip)?Math.PI:0,
+      const spawns=[0,1].map(i=>({x:(i^flip)?c-1.5:1.5,y:1.5+randomInt(r-2),a:(i^flip)?Math.PI:0}));
+      while(spawns.length<this.score.length){
+        let best,space=-1;
+        for(let cell=0;cell<this.maze.links.length;cell++){
+          const p=this.maze.center(cell);
+          const gap=Math.min(...spawns.map(s=>dist(p,s)))+Math.random()*.25;
+          if(gap>space){best=p;space=gap;}
+        }
+        spawns.push({...best,a:Math.atan2(r/2-best.y,c/2-best.x)});
+      }
+      if(spawns.length>2)for(let i=spawns.length-1;i>0;i--){
+        const j=randomInt(i+1);[spawns[i],spawns[j]]=[spawns[j],spawns[i]];
+      }
+      this.tanks=spawns.map((spawn,i)=>({id:i,...spawn,
         alive:true,item:null,rapid:null,flash:0,shieldFlash:0}));
-      this.ai=this.options.bot && ['medium','hard'].includes(this.options.difficulty)
-        ? new global.TankPilot(this.options.difficulty) : new EasyPilot();this.botInput=idle();
+      if(this.options.botLevels){
+        this.pilots=this.options.botLevels.map(createPilot);
+        this.previousCommands=this.tanks.map(idle);
+        this.targets=this.tanks.map(()=>null);
+        this.nextTargetCheck=this.tanks.map(()=>0);
+      }else{
+        this.ai=createPilot(this.options.bot?this.options.difficulty:'easy',1);
+        this.botInput=idle();
+      }
     }
     effect(type,x,y,life,extra={}){this.effects.push({type,x,y,life,total:life,...extra});}
     hit(t){
       if(!t.alive)return;
       if(t.item==='shield'){t.item=null;t.shieldFlash=.22;this.effect('shield',t.x,t.y,.3);return;}
       t.alive=false;t.rapid=null;this.effect('blast',t.x,t.y,.65,{color:t.id});
-      if(this.finishAt===null)this.finishAt=this.time+2.5;
+      if(this.finishAt===null && this.tanks.filter(tank=>tank.alive).length<=1)this.finishAt=this.time+2.5;
     }
     get stickTurnRate(){
       const sensitivity=clamp(this.options.stickSensitivity || 0,0,100);
@@ -349,10 +386,35 @@ background:#242836;color:#faf9f5;font-size:12px;box-shadow:0 2px 8px #20233133}
         if(i>=0){t.item=this.items.splice(i,1)[0].kind;this.effect('pickup',t.x,t.y,.38);}
       }
     }
+    opponent(id){
+      if(this.tanks.length===2)return this.tanks[1-id];
+      const previous=this.targets[id],me=this.tanks[id];
+      if(previous?.alive && this.time<this.nextTargetCheck[id])return previous;
+      let best=null,cost=Infinity;
+      for(const t of this.tanks){
+        if(t===me || !t.alive)continue;
+        const priority=dist(me,t)-(this.maze.visible(me,t,SHOT) ? 2 : 0)-(t===previous ? .75 : 0);
+        if(priority<cost){cost=priority;best=t;}
+      }
+      this.nextTargetCheck[id]=this.time+.25;
+      return this.targets[id]=best || previous || this.tanks.find(t=>t!==me);
+    }
     step(dt,inputs){
       this.time+=dt;
-      if(this.options.bot)this.botInput=this.ai.control(this,dt,inputs[0]);
-      const controls=[inputs[0],this.options.bot?this.botInput:inputs[1]];
+      let controls=inputs;
+      if(this.pilots){
+        controls=this.pilots.map((pilot,id)=>{
+          if(!this.tanks[id].alive)return idle();
+          const opponent=this.opponent(id);
+          return pilot.control(this,dt,this.previousCommands[opponent.id],opponent);
+        });
+        // Fire events are consumed below. Both observers need the submitted
+        // commands from the preceding step, including any single-tap shots.
+        this.previousCommands=controls.map(c=>({...c,edges:c.edges?.slice()}));
+      }else if(this.options.bot){
+        this.botInput=this.ai.control(this,dt,inputs[0]);
+        controls=[inputs[0],this.botInput];
+      }
       this.tanks.forEach((t,i)=>{
         t.flash=Math.max(0,t.flash-dt);t.shieldFlash=Math.max(0,t.shieldFlash-dt);
         if(t.alive)this.move(t,controls[i],dt);
@@ -384,9 +446,10 @@ background:#242836;color:#faf9f5;font-size:12px;box-shadow:0 2px 8px #20233133}
   }
   class EasyPilot {
     constructor(id=1){this.id=id;this.think=0;this.fireIn=1.2;this.waypoint=null;this.mode='walk';this.hold=0;}
-    control(game,dt){
-      const t=game.tanks[this.id],enemy=game.tanks[1-this.id],m=game.maze,input=idle();
+    control(game,dt,inputSeen,enemy=game.opponent(this.id)){
+      const t=game.tanks[this.id],m=game.maze,input=idle();
       if(!t.alive || !enemy.alive)return input;
+      if(this.targetId!==enemy.id){this.targetId=enemy.id;this.think=0;}
       this.think-=dt;this.fireIn-=dt;
       if(this.think<=0){
         this.think=.24+Math.random()*.15;
@@ -683,8 +746,9 @@ background:#242836;color:#faf9f5;font-size:12px;box-shadow:0 2px 8px #20233133}
       this.hard=false;this.id=id;this.plan={drive:0,turn:0};this.nextThink=0;this.nextShot=0;this.holdUntil=0;
       this.intent=null;this.attack=null;
     }
-    control(g,dt,opponent=idle()){
-      const t=g.tanks[this.id],e=g.tanks[1-this.id],hard=this.hard,cmd=idle();
+    control(g,dt,opponent=idle(),e=g.opponent(this.id)){
+      const t=g.tanks[this.id],hard=this.hard,cmd=idle();
+      if(this.targetId!==e.id){this.targetId=e.id;this.nextThink=0;}
       if(!t.alive)return cmd;
       if(g.time>=this.nextThink){
         const hazardsAhead=hazards(g,t,e,opponent,hard?12:4,hard);
@@ -3230,6 +3294,7 @@ background:#242836;color:#faf9f5;font-size:12px;box-shadow:0 2px 8px #20233133}
       this.game=game;
       this.me=me;
       this.foe=foe;
+      this.bystanders=game.tanks.filter(t=>t.alive && t!==me && t!==foe);
       this.forecast=forecast;
       this.seeds=game.bullets.filter(b=>b.kind==='seeker' &&
         dist(b,me)<(2.65+2.02)*1.55 && !b.gone);
@@ -3278,9 +3343,13 @@ background:#242836;color:#faf9f5;font-size:12px;box-shadow:0 2px 8px #20233133}
       const otherAlive=this.foe.alive;
       const ownDist=dist(shell,me);
       const enemyDist=otherAlive?dist(shell,enemy):Infinity;
-      const chaseEnemy=enemyDist<ownDist || (enemyDist===ownDist && this.foe.id===0);
-      const target=chaseEnemy?enemy:me;
-      const id=chaseEnemy?this.foe.id:this.me.id;
+      const chaseEnemy=enemyDist<ownDist || (enemyDist===ownDist && this.foe.id<this.me.id);
+      let target=chaseEnemy?enemy:me, id=chaseEnemy?this.foe.id:this.me.id;
+      let nearest=Math.min(ownDist,enemyDist);
+      for(const t of this.bystanders){
+        const gap=dist(shell,t);
+        if(gap<nearest || (gap===nearest && t.id<id)){nearest=gap;target=t;id=t.id;}
+      }
       if (shell.targetId!==id) {
         shell.targetId=id;
         shell.repath=0;
@@ -3348,14 +3417,20 @@ background:#242836;color:#faf9f5;font-size:12px;box-shadow:0 2px 8px #20233133}
     contactLeg(shell,a,b,c,d,dx,dy) {
       const own=shell.armed || shell.owner!==this.me.id;
       const other=this.foe.alive && (shell.armed || shell.owner!==this.foe.id);
-      const enemyHit=other ? this.firstContact(c,d,shell.x,shell.y,dx,dy) : Infinity;
+      let enemyHit=other ? this.firstContact(c,d,shell.x,shell.y,dx,dy) : Infinity;
+      let hitId=this.foe.id;
+      for(const t of this.bystanders){
+        if(!shell.armed && shell.owner===t.id)continue;
+        const hit=this.firstContact(t,t,shell.x,shell.y,dx,dy);
+        if(hit<enemyHit || (hit===enemyHit && t.id>hitId)){enemyHit=hit;hitId=t.id;}
+      }
       const end={x:shell.x+dx,y:shell.y+dy};
       let closest=Infinity;
       if (own) {
         closest=relativeClearance(a,b,shell,end);
         if (enemyHit!==Infinity) {
           const ourHit=this.firstContact(a,b,shell.x,shell.y,dx,dy);
-          if (enemyHit<ourHit || (enemyHit===ourHit && this.foe.id>this.me.id)) closest=Infinity;
+          if (enemyHit<ourHit || (enemyHit===ourHit && hitId>this.me.id)) closest=Infinity;
         }
       }
       if (enemyHit!==Infinity || closest<=BODY+SHOT) shell.done=true;
@@ -3381,10 +3456,11 @@ background:#242836;color:#faf9f5;font-size:12px;box-shadow:0 2px 8px #20233133}
             shell.done=true;
             continue;
           }
-          if (shell.liveTarget >= 0) shell.target = shell.liveTarget === this.me.id ? b : d;
+          if (shell.liveTarget >= 0) shell.target = shell.liveTarget === this.me.id ? b :
+            shell.liveTarget===this.foe.id ? d : this.game.tanks[shell.liveTarget];
           this.guide(shell,b,d,dt);
           const len=shell.speed*dt;
-          const owner=shell.owner===this.me.id?b:d;
+          const owner=shell.owner===this.me.id?b:shell.owner===this.foe.id?d:this.game.tanks[shell.owner];
           if (dist(shell,owner)>BODY+SHOT+.001) shell.armed=true;
           let closest=Infinity;
           const wall=this.game.maze.cast(shell.x,shell.y,shell.dx,shell.dy,len,SHOT);
@@ -4083,7 +4159,7 @@ background:#242836;color:#faf9f5;font-size:12px;box-shadow:0 2px 8px #20233133}
               if(t.owner===path.id && when<t.selfFrom) continue;
               if(Math.hypot(x+dx*dt,y+dy*dt)>BODY+SHOT) continue;
               seen.add(t);
-              t.arrivals[path.id].push({at:when,mass:path.weight});
+              t.arrivals[path.id===me.id ? 0 : 1].push({at:when,mass:path.weight});
             }
           }
         }
@@ -4107,7 +4183,7 @@ background:#242836;color:#faf9f5;font-size:12px;box-shadow:0 2px 8px #20233133}
         let absorbed=0;
         // When considering an alternative path for our tank, only the other
         // tank's predicted contact can remove a shell from that alternative.
-        for(const hit of t.arrivals[owner===null ? 1-this.plannerId : this.plannerId]) {
+        for(const hit of t.arrivals[owner===null ? 1 : 0]) {
           if(hit.at>=this.now && hit.at+.06<when) absorbed+=hit.mass;
         }
         const confidence=1-.85*Math.min(1,absorbed);
@@ -4231,11 +4307,24 @@ background:#242836;color:#faf9f5;font-size:12px;box-shadow:0 2px 8px #20233133}
       this.nextThink = game.time + (close || field.incoming() ? .064 : .095);
     }
 
-    control(game, dt, input = idle()) {
+    control(game, dt, input = idle(), foe = game.opponent(this.id)) {
       const cmd = idle();
       const me = game.tanks[this.id];
-      const foe = game.tanks[1 - this.id];
       if (!me.alive) return cmd;
+      if(this.targetId!==undefined && this.targetId!==foe.id){
+        this.model=new TankOpponentModel();
+        this.duel=new TankDuelPlanner();
+        this.duel.traffic=this.traffic;
+        this.traffic.nextEstimate=0;
+        this.weapons.last=null;
+        this.weapons.ordnance=new TankOrdnance();
+        this.salvo=new TankSalvoPlanner();
+        this.shadow=new TankShadowDefender();
+        this.engagement=new TankEngagement();
+        this.lastWorld=null;
+        this.nextThink=0;
+      }
+      this.targetId=foe.id;
       this.model.observe(game, foe, input);
       if (game.time >= this.nextThink || this.invalidate(game, me, foe, input)) {
         this.decide(game, me, foe, input);
@@ -4389,7 +4478,7 @@ background:#242836;color:#faf9f5;font-size:12px;box-shadow:0 2px 8px #20233133}
 /* Embedded by build-release.cjs. Version checks never drive the simulation. */
 (function () {
   'use strict';
-  const current = {"version":"1.1.1","date":"2026-11-15","title":"手机转向灵敏度调节","notes":["手机端新增 0%–100% 转向灵敏度，开局选颜色和对战暂停菜单中均可调整。","默认灵敏度为 65%；拉满到 100% 后，车头立即对准移动轮盘方向。","满灵敏度下，拖动轮盘掉头并同时点按开火，炮弹沿新的朝向发射。","灵敏度保存在当前设备，重新打开游戏后沿用上次设置。"],"build":"f7aa532d2f66e8dc"};
+  const current = {"version":"1.2.0","date":"2026-11-15","title":"观战模式、多人混战与倍速","notes":["选择电脑或手机后，可进入对战模式或观战模式。","观战支持 2～5 台人机混战，每台可独立选择简单、中等或困难。","观战中可随时切换 1×、2×、4× 倍速，保留当前局面与比分。","倍速按相同物理步推进，人机判断、碰撞与游戏规则保持一致；实际速度取决于设备性能。","多人混战只剩一台时开始 2.5 秒结算；撑到结束者加分，期间全员阵亡则平局。","观战适配手机横屏，并可通过暂停菜单调整阵容；新阵容从零计分。"],"build":"fc6397e8c22a1f6b"};
   let hooks, latest = null, checking = false, refreshing = false, prompted = '', error = '';
   const notice = document.createElement('aside');
   notice.id = 'release-notice';
@@ -4543,6 +4632,15 @@ background:#242836;color:#faf9f5;font-size:12px;box-shadow:0 2px 8px #20233133}
   let names=['玩家 1','GPT'],game=new Game(),inputs=[idle(),idle()],keys=new Set(),last=0,debt=0;
   let stickPointer=null,triggerPointer=null,stickAim=null,stickForce=0,savedKey='tank-arena:last-session:v1';
   let dirty=true;
+  let watchSpeed=1;
+  function setSpeed(speed){
+    watchSpeed=speed;
+    for(const b of $('watch-speed').querySelectorAll('button'))b.setAttribute('aria-pressed',String(Number(b.value)===speed));
+  }
+  for(const b of $('watch-speed').querySelectorAll('button'))b.onclick=()=>setSpeed(Number(b.value));
+  function standings(players,scores){
+    return players.map((name,i)=>String(name).replace(/^GPT [低中高]$/,'GPT')+' '+scores[i]).join('　·　');
+  }
   const sensitivityKey='tank-arena:stick-sensitivity:v1';
   let stickSensitivity=65;
   try{
@@ -4557,12 +4655,12 @@ background:#242836;color:#faf9f5;font-size:12px;box-shadow:0 2px 8px #20233133}
   function readSaved(){try{return JSON.parse(localStorage.getItem(savedKey));}catch{return null;}}
   function save(){
     if(!active)return;
-    try{localStorage.setItem(savedKey,JSON.stringify({names:[...names],score:[...game.score],date:Date.now()}));}catch{}
+    try{localStorage.setItem(savedKey,JSON.stringify({names:[...names],score:[...game.score],mode,date:Date.now()}));}catch{}
   }
   function resetInput(){
     keys.clear();inputs=[idle(),idle()];stickPointer=null;triggerPointer=null;stickAim=null;stickForce=0;
     $('stick').firstElementChild.style.transform='';$('trigger').classList.remove('down');
-    for(const t of game.tanks)if(t.rapid){t.rapid=null;t.item=null;}
+    if(mode!=='watch')for(const t of game.tanks)if(t.rapid){t.rapid=null;t.item=null;}
   }
   function action(label,fn,cls='action'){
     const b=document.createElement('button');b.className=cls;b.textContent=label;b.onclick=fn;return b;
@@ -4596,23 +4694,55 @@ background:#242836;color:#faf9f5;font-size:12px;box-shadow:0 2px 8px #20233133}
   function deviceScreen(){
     document.body.classList.remove('mobile');view='device';section('选择游戏设备','选择你的操作方式，进入迷宫对战。');
     const cards=group('cards');
-    for(const [type,label,hint] of [['pc','电脑','同屏双人 / 人机'],['mobile','手机','触屏人机对战']]){
+    for(const [type,label,hint] of [['pc','电脑','键盘操作'],['mobile','手机','横屏触控']]){
       const b=action('',()=>{device=type;document.body.classList.toggle('mobile',type==='mobile');modeScreen();},'card');
       const icon=document.createElement('i');icon.className='device '+type;const strong=document.createElement('b');strong.textContent=label;
       const small=document.createElement('small');small.textContent=hint;b.append(icon,strong,small);cards.append(b);
     }
     const saved=readSaved();
     if(saved && Array.isArray(saved.names)&&Array.isArray(saved.score)){
-      const line=group('history');line.textContent='上次对战　'+saved.names[0]+'　'+saved.score[0]+' ∶ '+saved.score[1]+'　'+String(saved.names[1]).replace(/^GPT [低中高]$/,'GPT');
+      const line=group('history');line.textContent=(saved.mode==='watch'?'上次观战　':'上次对战　')+standings(saved.names,saved.score);
     }
   }
   const difficulties={easy:'简单',medium:'中等',hard:'困难'};
+  const watchColors=['橙','白','蓝','紫','绿'];
   function modeScreen(){
-    view='mode';section(device==='pc'?'选择对战模式':'选择人机对手',device==='pc'?'共用一副键盘，或挑战本地人机。':'左轮盘移动和转向，右侧按钮开火。');
+    view='mode';section('选择游戏模式');
+    group('stack').append(action('对战模式',battleScreen,'action primary'),action('观战模式',()=>watchScreen()));
+    panelBody.append(action('← 返回设备选择',deviceScreen,'back'));
+  }
+  function battleScreen(){
+    view='battle';section(device==='pc'?'选择对战方式':'选择人机对手',device==='pc'?'共用一副键盘，或挑战本地人机。':'左轮盘移动和转向，右侧按钮开火。');
     const list=group('stack');
     if(device==='pc')list.append(action('同屏双人',()=>colorScreen('duel')));
     for(const [key,label] of Object.entries(difficulties))list.append(action('挑战 GPT · '+label,()=>colorScreen(key),key==='hard'?'action primary':'action'));
-    panelBody.append(action('← 返回设备选择',deviceScreen,'back'));
+    panelBody.append(action('← 返回模式选择',modeScreen,'back'));
+  }
+  function watchScreen(rematch=false){
+    view='pair';section('选择观战阵容',rematch?'开始新对局后，各方比分从零计起。':'选择参战数量，再为每台坦克设置难度。');
+    const levels=rematch?[...game.options.botLevels]:['medium','hard'];
+    const countRow=group('bot-count'),count=document.createElement('select'),caption=document.createElement('label');
+    count.id='bot-count';caption.htmlFor=count.id;caption.textContent='参战数量';
+    for(let i=2;i<=5;i++)count.add(new Option(i+' 台',String(i)));
+    count.value=String(levels.length);countRow.append(caption,count);
+    const roster=group('roster');
+    for(const [id,color] of watchColors.entries()){
+      levels[id]??='medium';
+      const field=document.createElement('fieldset'),legend=document.createElement('legend');
+      field.className='bot-level';field.style.setProperty('--paint',TankArt.swatches[color]);
+      legend.textContent=color+'方 GPT';field.append(legend);
+      for(const [key,title] of Object.entries(difficulties)){
+        const label=document.createElement('label'),radio=document.createElement('input'),text=document.createElement('span');
+        radio.type='radio';radio.name='level-'+id;radio.value=key;radio.checked=levels[id]===key;
+        radio.onchange=()=>{levels[id]=key;};text.textContent=title;
+        label.append(radio,text);field.append(label);
+      }
+      roster.append(field);
+    }
+    const showSeats=()=>Array.from(roster.children).forEach((field,i)=>{field.hidden=i>=Number(count.value);});
+    count.onchange=showSeats;showSeats();
+    group('stack').append(action(rematch?'开始新对局':'开始观战',()=>start('watch',watchColors,levels.slice(0,Number(count.value))),'action primary'));
+    panelBody.append(action(rematch?'← 返回暂停菜单':'← 返回模式选择',rematch?pause:modeScreen,'back'));
   }
   function colorScreen(which){
     view='colors';
@@ -4633,59 +4763,76 @@ background:#242836;color:#faf9f5;font-size:12px;box-shadow:0 2px 8px #20233133}
       btn.disabled=name===selected[1-id];
     }}
     if(device==='mobile')sensitivitySetting();
-    refresh();panelBody.append(action('开始对战',()=>{
-      for(let i=0;i<2;i++)TankArt.colors[i]=swatches[selected[i]];
-      document.querySelectorAll('.portrait').forEach((c,i)=>{
-        TankArt.drawPortrait(c,i);c.parentElement.style.setProperty('--paint',TankArt.colors[i]);
-      });
-      start(which);
-    },'action primary'),action('← 返回',modeScreen,'back'));
+    refresh();panelBody.append(action('开始对战',()=>start(which,selected),'action primary'),action('← 返回',battleScreen,'back'));
   }
   function play(){
     view='play';panel.close();last=0;debt=0;running=true;resetInput();$('board').focus();release.sync();
   }
-  function start(which){
-    mode=which;active=true;ending=0;names=['玩家 1',mode==='duel'?'玩家 2':'GPT'];
-    game=new Game({bot:mode!=='duel',difficulty:mode,stickSensitivity:device==='mobile'?stickSensitivity:undefined});
-    $('touch-controls').hidden=device!=='mobile';$('mode-label').textContent=mode==='duel'?'同屏双人':'本地人机 · '+difficulties[mode];
-    $('name0').textContent=names[0];$('name1').textContent=names[1];play();sync();
+  function start(which,colors,botLevels){
+    mode=which;active=true;ending=0;
+    const seats=botLevels?.length ?? 2,board=document.querySelector('.scoreboard');
+    board.classList.toggle('multi',seats>2);
+    board.style.setProperty('--seats',seats);
+    board.querySelectorAll('.extra').forEach(el=>el.remove());
+    for(let i=2;i<seats;i++){
+      const card=board.querySelector('.player').cloneNode(true);
+      card.className='player extra';
+      for(const el of card.querySelectorAll('[id]'))el.id=el.id.replace(/0$/,String(i));
+      board.append(card);
+    }
+    for(let i=0;i<seats;i++)TankArt.colors[i]=TankArt.swatches[colors[i]];
+    document.querySelectorAll('.portrait').forEach((c,i)=>{
+      TankArt.drawPortrait(c,i);c.parentElement.style.setProperty('--paint',TankArt.colors[i]);
+    });
+    const watching=mode==='watch';
+    names=watching?botLevels.map((level,i)=>colors[i]+'方 GPT · '+difficulties[level]):['玩家 1',mode==='duel'?'玩家 2':'GPT'];
+    game=new Game(watching?{botLevels}:{bot:mode!=='duel',difficulty:mode,stickSensitivity:device==='mobile'?stickSensitivity:undefined});
+    document.body.classList.toggle('watching',watching);
+    setSpeed(1);$('watch-speed').hidden=!watching;
+    $('touch-controls').hidden=watching||device!=='mobile';
+    $('mode-label').textContent=watching?'观战模式':mode==='duel'?'同屏双人':'本地人机 · '+difficulties[mode];
+    names.forEach((name,i)=>{$('name'+i).textContent=name;});play();sync();
   }
   function exitMatch(){
-    save();active=false;running=false;ending=0;$('touch-controls').hidden=true;document.body.classList.remove('mobile');
-    $('mode-label').textContent='迷宫对决';deviceScreen();sync();release.sync();
+    save();active=false;running=false;ending=0;$('touch-controls').hidden=true;document.body.classList.remove('mobile','watching');
+    $('watch-speed').hidden=true;setSpeed(1);$('mode-label').textContent='迷宫对决';deviceScreen();sync();release.sync();
   }
   function pause(){
-    if(!active)return;view='pause';section('对战暂停',names[0]+'　'+game.score[0]+' ∶ '+game.score[1]+'　'+names[1]);
-    if(device==='mobile')sensitivitySetting();
-    const list=group('stack');list.append(action('继续对战',play,'action primary'),action('玩法与道具',()=>guide('pause')),action('保存比分并退出',exitMatch));
+    if(!active)return;view='pause';const watching=mode==='watch';
+    section(watching?'观战暂停':'对战暂停',standings(names,game.score));
+    if(device==='mobile'&&!watching)sensitivitySetting();
+    const list=group('stack');list.append(action(watching?'继续观战':'继续对战',play,'action primary'));
+    if(watching)list.append(action('调整观战阵容',()=>watchScreen(true)));
+    list.append(action('玩法与道具',()=>guide('pause')),action('保存比分并退出',exitMatch));
   }
   function guide(back){
     helpReturn=back;view='guide';
-    section('玩法与道具',device==='mobile'?'左轮盘朝目标方向推动，右手点按开火。':'P1 用 W/S 前进后退、A/D 转向、空格开火。P2 用方向键和回车。');
-    const p=document.createElement('p');p.textContent='普通炮每点一发，场上最多五发，十秒后消失。反弹会误伤自己。首辆坦克阵亡后再战 2.5 秒，双亡平局。';panelBody.append(p);
+    section('玩法与道具',mode==='watch'?'人机自动对战，每局结束后更换地图。':device==='mobile'?'左轮盘朝目标方向推动，右手点按开火。':'P1 用 W/S 前进后退、A/D 转向、空格开火。P2 用方向键和回车。');
+    const p=document.createElement('p');p.textContent='每台坦克同时最多有五枚普通弹，子弹最多飞行十秒，反弹会误伤自己。只剩一台后再战 2.5 秒，幸存者得一分，全灭平局。';panelBody.append(p);
     const dl=document.createElement('dl');dl.className='rules';for(const [key,[name,desc]] of Object.entries(ITEMS)){
       const row=document.createElement('div'),dt=document.createElement('dt'),dd=document.createElement('dd');
       dt.textContent=name;dd.textContent=key==='rapid'?'按住起转后连续扫射，可边走边转；短点消耗道具。':desc;row.append(dt,dd);dl.append(row);
     }
-    panelBody.append(dl,action(back==='pause'?'返回菜单':'继续对战',back==='pause'?pause:play,'action primary'));
+    panelBody.append(dl,action(back==='pause'?'返回菜单':mode==='watch'?'继续观战':'继续对战',back==='pause'?pause:play,'action primary'));
   }
   $('menu').onclick=pause;$('guide').onclick=()=>{if(active)guide('play');};
   panel.addEventListener('cancel',e=>{
     e.preventDefault();if(view==='pause')play();else if(view==='guide'){helpReturn==='pause'?pause():play();}
-    else if(view==='colors')modeScreen();else if(view==='mode')deviceScreen();
+    else if(view==='colors')battleScreen();else if(view==='pair'&&active)pause();
+    else if(view==='battle'||view==='pair')modeScreen();else if(view==='mode')deviceScreen();
   });
   const binds=new Set(['KeyW','KeyA','KeyS','KeyD','Space','ArrowUp','ArrowDown','ArrowLeft','ArrowRight','Enter','NumpadEnter']);
   const playerFor=k=>k==='Space'?0:(k==='Enter'||k==='NumpadEnter')?1:-1;
   window.addEventListener('keydown',e=>{
     if(!running || e.altKey || e.ctrlKey || e.metaKey)return;
     if(e.code==='Escape'){e.preventDefault();pause();return;}
-    if(device!=='pc'||!binds.has(e.code))return;e.preventDefault();
+    if(mode==='watch'||device!=='pc'||!binds.has(e.code))return;e.preventDefault();
     if(keys.has(e.code)||e.repeat)return;keys.add(e.code);
     const i=playerFor(e.code);if(i>=0 && (i===0||mode==='duel')){fireEdge(i,true);}
   });
   window.addEventListener('keyup',e=>{
     keys.delete(e.code);const i=playerFor(e.code);
-    if(i>=0 && running && device==='pc')fireEdge(i,i===1&&(keys.has('Enter')||keys.has('NumpadEnter')));
+    if(i>=0 && running && mode!=='watch' && device==='pc')fireEdge(i,i===1&&(keys.has('Enter')||keys.has('NumpadEnter')));
   });
   function moveStick(e){
     const el=$('stick'),r=el.getBoundingClientRect(),screenX=e.clientX-r.left-r.width/2,screenY=e.clientY-r.top-r.height/2;
@@ -4733,14 +4880,19 @@ background:#242836;color:#faf9f5;font-size:12px;box-shadow:0 2px 8px #20233133}
   function frame(now){
     if(running){
       const elapsed=last?Math.min(.1,(now-last)/1000):0;last=now;
-      if(ending){
-        ending=Math.max(0,ending-elapsed);
-        if(!ending){game.newRound();resetInput();debt=0;release.sync();}
-      }else{
-        debt+=elapsed;while(debt>=STEP){
-          controls();const result=game.step(STEP,inputs);debt-=STEP;
-          if(result){ending=.12;save();release.roundEnded();break;}
+      const watching=mode==='watch';
+      debt=Math.min(.4,debt+elapsed*(watching?watchSpeed:1));
+      // At higher rates allow a longer batch, then yield for touch and paint.
+      const deadline=watching?performance.now()+8+4*watchSpeed:Infinity;
+      while(debt>=STEP){
+        debt-=STEP;
+        if(ending){
+          if(--ending===0){game.newRound();resetInput();release.sync();}
+        }else{
+          if(mode!=='watch')controls();
+          if(game.step(STEP,inputs)){ending=Math.ceil(.12/STEP);save();release.roundEnded();if(!running)break;}
         }
+        if(watching && performance.now()>=deadline)break;
       }
       sync();
     }
