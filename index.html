@@ -4,6 +4,8 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#191c24">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
 <title>坦克迷阵 · TANK ARENA</title>
 <style>
 :root{color-scheme:light;--ink:#202331;--paper:#faf9f5;--wall:#313440;--orange:#ff8332;--blue:#3489e9;font-family:"Segoe UI","Microsoft YaHei",system-ui,sans-serif;color:var(--ink)}
@@ -15,12 +17,24 @@ main{width:min(1230px,96vw);height:calc(100dvh - 60px);margin:auto;padding:12px 
 .scoreboard{height:73px;gap:clamp(8px,2vw,24px);justify-content:center;background:var(--paper);border:1px solid #d2d1c9;border-radius:5px;padding:0 18px}.player{flex:1;gap:12px}.player.right{flex-direction:row-reverse;text-align:right}.portrait{width:48px;height:45px}.score{font:bold 37px/1 Consolas,monospace;margin-left:auto}.right .score{margin-left:0;margin-right:auto}.player-text{min-width:60px;font-size:14px}.ammo{display:flex;gap:3px;margin:5px 0 2px}.right .ammo{justify-content:flex-end}.ammo i{width:9px;height:5px;border-radius:1px;background:#d4d3cf}.ammo i.ready{background:var(--paint,#ff882c);box-shadow:inset 0 0 0 1px #31344045}.right{--paint:#fff}.player-text small{display:block;color:#635a51;font-size:11px}.player-text small:empty{display:none}.versus{font:900 13px Consolas,monospace;background:var(--ink);color:white;padding:5px 7px;border-radius:3px}
 dialog{width:min(460px,calc(100vw - 28px));max-height:calc(100dvh - 28px);border:2px solid #252935;border-radius:13px;padding:0;background:#f9f8f4;color:var(--ink);box-shadow:6px 7px 0 #16192556;overscroll-behavior:contain}dialog::backdrop{background:#191c2994;backdrop-filter:blur(2px)}.dialog-body{padding:clamp(20px,4vw,32px)}.dialog-body h1{font-size:clamp(24px,4vw,32px);margin:0 0 17px;letter-spacing:-.04em}.dialog-body p{line-height:1.65;font-size:14px;color:#545660;margin:8px 0 18px}.cards{display:grid;grid-template-columns:1fr 1fr;gap:12px}.card{min-height:130px;background:#fff;border:1.5px solid #c3c3c0;border-radius:8px;padding:15px 10px;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:7px}.card:hover,.card:focus-visible{background:#fff1e4;border-color:#d76c25}.card b{font-size:19px}.card small{font-size:12px;color:#5f626c}.device{width:35px;height:25px;position:relative;margin:4px 0 8px;border:3px solid var(--ink);border-radius:3px;background:#ffc18d}.device.pc:after{content:"";position:absolute;bottom:-7px;left:7px;background:var(--ink);height:3px;width:16px}.device.mobile{width:18px;height:30px;margin:0 0 7px;background:#a2cbf3}.device.mobile:after{content:"";height:2px;width:4px;position:absolute;bottom:1px;left:4px;background:var(--ink)}
 .stack{display:grid;gap:9px}.action{border-radius:6px;padding:12px 15px;border:1px solid #b9bab7;background:white;text-align:center;font-weight:650}.action.primary{background:#242836;color:white;border-color:#242836}.action:hover{filter:brightness(.93)}.back{border:0;background:none;padding:12px 0 0;font-size:13px;color:#525567}.history{border-top:1px solid #d5d3ca;margin-top:18px;padding-top:12px;font-size:12px;color:#60616a}.rules{display:grid;gap:8px;font-size:13px;line-height:1.5;margin:0 0 15px}.rules div{display:grid;grid-template-columns:70px 1fr;gap:8px}.rules dt{font-weight:bold}.rules dd{margin:0;color:#51545c}.touch-controls{display:flex;align-items:center;justify-content:space-between;padding:0 max(6vw,env(safe-area-inset-right)) 0 max(6vw,env(safe-area-inset-left));touch-action:none;user-select:none}.stick,.trigger{touch-action:none;user-select:none;-webkit-user-select:none;border:2px solid #9c9da1;display:grid;place-items:center;background:#d6d6d2;border-radius:50%;position:relative}.stick{height:94px;width:94px;background:radial-gradient(circle,#dddcd8 30%,#c4c5c4 100%)}.stick:before,.stick:after{content:"";position:absolute;background:#a6a7a8;width:68%;height:1px}.stick:after{transform:rotate(90deg)}.stick-knob{z-index:1;border:2px solid #898d94;width:41%;height:41%;border-radius:50%;background:#faf9f5;pointer-events:none}.trigger{width:77px;height:77px;border:3px solid #a94c18;background:var(--orange);font-weight:800;color:#251b19;box-shadow:0 3px 0 #a94c18}.trigger:active,.trigger.down{transform:translateY(2px);box-shadow:none;background:#ee7428}[hidden]{display:none!important}
-body.mobile{--game-w:100dvw;--game-h:100dvh;overflow:hidden;overscroll-behavior:none}
+body.mobile{--game-w:100dvw;--game-h:100dvh;--safe-l:env(safe-area-inset-left,0px);--safe-r:env(safe-area-inset-right,0px);--safe-t:env(safe-area-inset-top,0px);--safe-b:env(safe-area-inset-bottom,0px);--header-h:calc(36px + var(--safe-t));overflow:hidden;overscroll-behavior:none}
 .mobile .stage{position:fixed;top:0;left:0;width:var(--game-w);height:var(--game-h);background:#eeede8}
-body.mobile header{height:36px;padding:0 max(14px,env(safe-area-inset-right)) 0 max(14px,env(safe-area-inset-left))}
-body.mobile main{height:calc(var(--game-h) - 36px);width:100%;padding:4px max(88px,env(safe-area-inset-right)) max(4px,env(safe-area-inset-bottom)) max(88px,env(safe-area-inset-left));gap:4px;grid-template-rows:auto minmax(0,1fr) auto}
-.mobile .touch-controls{position:absolute;left:0;right:0;bottom:17%;padding:0 max(8px,env(safe-area-inset-right)) 0 max(8px,env(safe-area-inset-left));pointer-events:none}
-.mobile .touch-controls>*{pointer-events:auto}.mobile .stick{width:74px;height:74px}.mobile .trigger{width:64px;height:64px}
+body.mobile header{height:var(--header-h);padding:var(--safe-t) max(14px,var(--safe-r)) 0 max(14px,var(--safe-l))}
+body.mobile main{height:calc(var(--game-h) - var(--header-h));width:100%;padding:4px max(8px,var(--safe-r)) max(4px,var(--safe-b)) max(8px,var(--safe-l));gap:4px;grid-template-rows:auto minmax(0,1fr) auto}
+#fullscreen{display:none}.mobile #fullscreen{display:flex}
+.mobile header button,.mobile dialog button{touch-action:manipulation}
+#screen-hint{position:absolute;z-index:2;top:var(--header-h);right:max(10px,var(--safe-r));max-width:75%;background:var(--ink);color:white;border-radius:6px;padding:8px 12px;font-size:13px;pointer-events:none}
+.mobile .touch-controls{
+  --stick-size:clamp(102px,calc(var(--game-h)*.30),144px);
+  --fire-size:clamp(88px,calc(var(--game-h)*.25),120px);
+  --thumb-inset:clamp(22px,calc(var(--game-w)*.044),54px);
+  position:absolute;inset:calc(var(--header-h) + 32px) var(--safe-r) calc(var(--safe-b) + 49px) var(--safe-l);
+  padding:0;pointer-events:none;-webkit-touch-callout:none
+}
+#move-zone{position:absolute;inset:20% auto 0 0;width:44%;touch-action:none;pointer-events:auto}
+.mobile #stick{position:absolute;width:var(--stick-size);height:var(--stick-size);left:var(--thumb-inset);bottom:4%;pointer-events:none;opacity:.79}
+.mobile #move-zone:active #stick{opacity:.91}
+.mobile #trigger{position:absolute;right:var(--thumb-inset);bottom:4%;width:var(--fire-size);height:var(--fire-size);pointer-events:auto;font-size:19px;opacity:.9}
 .mobile dialog{width:min(460px,calc(var(--game-w) - 24px));max-width:none;max-height:calc(var(--game-h) - 20px)}
 .mobile .dialog-body{padding:15px 20px}.mobile .dialog-body h1{font-size:22px;margin-bottom:6px}
 .color-row{margin:12px 0 17px}.color-row strong{font-size:14px}.swatches{display:flex;gap:6px;flex-wrap:wrap;margin-top:6px}
@@ -37,11 +51,10 @@ body.mobile main{height:calc(var(--game-h) - 36px);width:100%;padding:4px max(88
 .scoreboard.multi{display:grid;grid-template-columns:repeat(var(--seats),minmax(0,1fr));gap:5px;padding:0 8px}.multi .versus{display:none}.multi .player{gap:4px;min-width:0;justify-content:center;flex-direction:row;text-align:left}.multi .player-text{min-width:0}.multi .ammo{justify-content:flex-start}.multi .score{font-size:23px;margin:0 2px}.multi .portrait{width:27px;height:26px}.multi .player-text strong{font-size:12px}
 body.mobile .multi .portrait{display:none}
 body.mobile .roster .bot-level{display:flex;align-items:center;margin-bottom:6px}body.mobile .roster .bot-level legend{float:left;margin:0 5px 0 0}body.mobile .roster .bot-level span{padding:6px}
-body.mobile.watching main{padding-left:max(6px,env(safe-area-inset-left));padding-right:max(6px,env(safe-area-inset-right))}
 .swatch{background:var(--paint);border:2px solid #656776;border-radius:50%;width:29px;height:29px;padding:0}
 .swatch[aria-pressed=true]{outline:2px solid #242836;outline-offset:2px}.swatch:disabled{opacity:.22}.color-row~.back{margin-left:14px}
 @media(orientation:portrait){
-  body.mobile{--game-w:100dvh;--game-h:100dvw}
+  body.mobile{--game-w:100dvh;--game-h:100dvw;--safe-l:env(safe-area-inset-top,0px);--safe-r:env(safe-area-inset-bottom,0px);--safe-t:env(safe-area-inset-right,0px);--safe-b:env(safe-area-inset-left,0px)}
   .mobile .stage{left:100%;transform-origin:0 0;transform:rotate(90deg)}
   .mobile dialog{position:fixed;inset:50% auto auto 50%;margin:0;transform:translate(-50%,-50%) rotate(90deg)}
 }
@@ -67,8 +80,10 @@ body.mobile .scoreboard{height:54px}body.mobile .portrait{height:36px;width:38px
 
 
 
-<meta name="tank-version" content="1.3.0">
-<meta name="tank-build" content="75362de761108033">
+<link rel="manifest" href="./game.webmanifest">
+<link rel="apple-touch-icon" href="./tank-192.png">
+<meta name="tank-version" content="1.4.0">
+<meta name="tank-build" content="0e9ee90dea802f52">
 <style>
 #release-version{font-variant-numeric:tabular-nums}
 .release-notes{margin:14px 0;border-top:1px solid #cccac3;padding-top:10px;font-size:12px}
@@ -89,7 +104,8 @@ background:#242836;color:#faf9f5;font-size:12px;box-shadow:0 2px 8px #20233133}
 <body>
 <div class="stage">
 <header><div class="brand"><span class="brand-mark" aria-hidden="true"></span><strong>坦克迷阵</strong><span class="wordmark">TANK ARENA</span></div>
-<nav aria-label="对战操作"><button id="guide" class="tool" title="玩法"><span aria-hidden="true">?</span> 玩法</button><button id="menu" class="tool" title="暂停菜单"><span aria-hidden="true">Ⅱ</span> 菜单</button></nav></header>
+<nav aria-label="对战操作"><button id="fullscreen" class="tool" type="button" aria-pressed="false">全屏</button><button id="guide" class="tool" title="玩法"><span aria-hidden="true">?</span> 玩法</button><button id="menu" class="tool" title="暂停菜单"><span aria-hidden="true">Ⅱ</span> 菜单</button></nav></header>
+<div id="screen-hint" role="status" hidden></div>
 <main>
 <section class="hud"><div class="round"><i></i>第 <b id="round">01</b> 局</div><div id="watch-speed" role="group" aria-label="观战倍速" hidden><span>倍速</span><button type="button" value="1" aria-pressed="true">1×</button><button type="button" value="2" aria-pressed="false">2×</button><button type="button" value="4" aria-pressed="false">4×</button></div><div class="mode-tag" id="mode-label">迷宫对决</div></section>
 <div class="field" id="field"><canvas id="board" aria-label="坦克对战迷宫"></canvas></div>
@@ -98,7 +114,7 @@ background:#242836;color:#faf9f5;font-size:12px;box-shadow:0 2px 8px #20233133}
 <div class="versus">VS</div>
 <div class="player right"><canvas class="portrait" width="96" height="90" aria-hidden="true"></canvas><div class="player-text"><strong id="name1">GPT</strong><div class="ammo" id="ammo1"></div><small id="item1"></small></div><b class="score" id="score1">0</b></div>
 </section>
-<div class="touch-controls" id="touch-controls" hidden><div class="stick" id="stick" aria-label="移动轮盘"><div class="stick-knob"></div></div><button class="trigger" id="trigger" aria-label="开火">开火</button></div>
+<div class="touch-controls" id="touch-controls" hidden><div id="move-zone" aria-label="移动区域"><div class="stick" id="stick" aria-label="移动轮盘"><div class="stick-knob"></div></div></div><button class="trigger" id="trigger" aria-label="开火">开火</button></div>
 </main>
 </div>
 <dialog id="panel" aria-labelledby="panel-title"><div class="dialog-body" id="panel-body"></div></dialog>
@@ -4686,7 +4702,7 @@ background:#242836;color:#faf9f5;font-size:12px;box-shadow:0 2px 8px #20233133}
 /* Embedded by build-release.cjs. Version checks never drive the simulation. */
 (function () {
   'use strict';
-  const current = {"version":"1.3.0","date":"2026-11-15","title":"优化人机反击","notes":["优化了人机躲避追踪弹的逻辑，提高了反击的准确性。","优化了人机在耗尽子弹时的逻辑"],"build":"75362de761108033"};
+  const current = {"version":"1.4.0","date":"2026-11-16","title":"手机横屏与浮动轮盘","notes":["手机开始对战或观战时会尝试进入横屏全屏，顶部按钮可随时切换。","加大移动轮盘和开火键，向内调整拇指位置。在左下区域按住即可拖动，滑出圆盘仍可转向，也可以同时点按开火。"],"build":"0e9ee90dea802f52"};
   let hooks, latest = null, checking = false, refreshing = false, prompted = '', error = '';
   const notice = document.createElement('aside');
   notice.id = 'release-notice';
@@ -4840,6 +4856,8 @@ background:#242836;color:#faf9f5;font-size:12px;box-shadow:0 2px 8px #20233133}
   let names=['玩家 1','GPT'],game=new Game(),inputs=[idle(),idle()],keys=new Set(),last=0,debt=0;
   let stickPointer=null,triggerPointer=null,stickAim=null,stickForce=0,savedKey='tank-arena:last-session:v1';
   let dirty=true;
+  const stick=$('stick'),moveZone=$('move-zone'),trigger=$('trigger');
+  let drag=null;
   let watchSpeed=1;
   function setSpeed(speed){
     watchSpeed=speed;
@@ -4866,8 +4884,7 @@ background:#242836;color:#faf9f5;font-size:12px;box-shadow:0 2px 8px #20233133}
     try{localStorage.setItem(savedKey,JSON.stringify({names:[...names],score:[...game.score],mode,date:Date.now()}));}catch{}
   }
   function resetInput(){
-    keys.clear();inputs=[idle(),idle()];stickPointer=null;triggerPointer=null;stickAim=null;stickForce=0;
-    $('stick').firstElementChild.style.transform='';$('trigger').classList.remove('down');
+    clearTouch();keys.clear();inputs=[idle(),idle()];
     if(mode!=='watch')for(const t of game.tanks)if(t.rapid){t.rapid=null;t.item=null;}
   }
   function action(label,fn,cls='action'){
@@ -4900,6 +4917,9 @@ background:#242836;color:#faf9f5;font-size:12px;box-shadow:0 2px 8px #20233133}
     display();row.append(label,value,slider);
   }
   function deviceScreen(){
+    hideScreenHint();
+    if(device==='mobile' && gameFullscreen())void setFullscreen(false);
+    device='';
     document.body.classList.remove('mobile');view='device';section('选择游戏设备','选择你的操作方式，进入迷宫对战。');
     const cards=group('cards');
     for(const [type,label,hint] of [['pc','电脑','键盘操作'],['mobile','手机','横屏触控']]){
@@ -4920,7 +4940,7 @@ background:#242836;color:#faf9f5;font-size:12px;box-shadow:0 2px 8px #20233133}
     panelBody.append(action('← 返回设备选择',deviceScreen,'back'));
   }
   function battleScreen(){
-    view='battle';section(device==='pc'?'选择对战方式':'选择人机对手',device==='pc'?'共用一副键盘，或挑战本地人机。':'左轮盘移动和转向，右侧按钮开火。');
+    view='battle';section(device==='pc'?'选择对战方式':'选择人机对手',device==='pc'?'共用一副键盘，或挑战本地人机。':'左下方按住拖动即可移动和转向，右手点按开火。');
     const list=group('stack');
     if(device==='pc')list.append(action('同屏双人',()=>colorScreen('duel')));
     for(const [key,label] of Object.entries(difficulties))list.append(action('挑战 GPT · '+label,()=>colorScreen(key),key==='hard'?'action primary':'action'));
@@ -4977,6 +4997,7 @@ background:#242836;color:#faf9f5;font-size:12px;box-shadow:0 2px 8px #20233133}
     view='play';panel.close();last=0;debt=0;running=true;resetInput();$('board').focus();release.sync();
   }
   function start(which,colors,botLevels){
+    if(device==='mobile' && !active)void setFullscreen(true);
     mode=which;active=true;ending=0;
     const seats=botLevels?.length ?? 2,board=document.querySelector('.scoreboard');
     board.classList.toggle('multi',seats>2);
@@ -5042,19 +5063,83 @@ background:#242836;color:#faf9f5;font-size:12px;box-shadow:0 2px 8px #20233133}
     keys.delete(e.code);const i=playerFor(e.code);
     if(i>=0 && running && mode!=='watch' && device==='pc')fireEdge(i,i===1&&(keys.has('Enter')||keys.has('NumpadEnter')));
   });
+  const portrait=matchMedia('(orientation: portrait)');
+  let hintTimer,screenPending=false;
+  function gameFullscreen(){
+    return (document.fullscreenElement || document.webkitFullscreenElement)===document.documentElement;
+  }
+  function hideScreenHint(){clearTimeout(hintTimer);$('screen-hint').hidden=true;}
+  function syncFullscreen(){
+    const on=gameFullscreen();
+    $('fullscreen').textContent=on?'退出全屏':'全屏';
+    $('fullscreen').setAttribute('aria-pressed',String(on));
+  }
+  async function setFullscreen(on,manual=false){
+    if(screenPending || on===gameFullscreen())return;
+    screenPending=true;
+    const root=document.documentElement;
+    try{
+      if(on){
+        if(root.requestFullscreen)await root.requestFullscreen({navigationUI:'hide'});
+        else await root.webkitRequestFullscreen();
+        if(gameFullscreen())screen.orientation?.lock?.('landscape')?.catch(()=>{});
+      }else if(document.exitFullscreen)await document.exitFullscreen();
+      else await document.webkitExitFullscreen();
+    }catch{
+      if(manual && on){
+        hideScreenHint();$('screen-hint').textContent='当前窗口限制全屏。可用系统浏览器打开，或添加到主屏幕后进入游戏。';
+        $('screen-hint').hidden=false;hintTimer=setTimeout(hideScreenHint,5500);
+      }
+    }finally{screenPending=false;syncFullscreen();}
+  }
+  $('fullscreen').onclick=()=>void setFullscreen(!gameFullscreen(),true);
+  for(const name of ['fullscreenchange','webkitfullscreenchange'])document.addEventListener(name,()=>{
+    hideScreenHint();syncFullscreen();clearTouch();
+  });
+  // Browser bars may resize the viewport during a swipe. Keep that contact until
+  // the game axes actually rotate, or the browser cancels the pointer.
+  if(portrait.addEventListener)portrait.addEventListener('change',clearTouch);
+  else portrait.addListener(clearTouch);
+  function clearStick(){
+    const id=stickPointer;stickPointer=null;drag=null;stickForce=0;stickAim=null;
+    stick.style.removeProperty('left');stick.style.removeProperty('top');
+    stick.firstElementChild.style.transform='';
+    if(id!==null && moveZone.hasPointerCapture(id))moveZone.releasePointerCapture(id);
+  }
+  function clearTouch(){
+    clearStick();
+    if(triggerPointer!==null){
+      const id=triggerPointer;triggerPointer=null;fireEdge(0,false);trigger.classList.remove('down');
+      if(trigger.hasPointerCapture(id))trigger.releasePointerCapture(id);
+    }
+  }
+  function localPoint(e){
+    const r=drag.bounds;
+    return drag.rotated?{x:e.clientY-r.top,y:r.right-e.clientX}:{x:e.clientX-r.left,y:e.clientY-r.top};
+  }
   function moveStick(e){
-    const el=$('stick'),r=el.getBoundingClientRect(),screenX=e.clientX-r.left-r.width/2,screenY=e.clientY-r.top-r.height/2;
-    const rotated=matchMedia('(orientation:portrait)').matches;
-    const dx=rotated?screenY:screenX,dy=rotated?-screenX:screenY;
-    const len=Math.hypot(dx,dy),radius=r.width*.32,j=len>radius?radius/len:1;
-    el.firstElementChild.style.transform='translate('+dx*j+'px,'+dy*j+'px)';
+    const {x,y}=localPoint(e),dx=x-drag.x,dy=y-drag.y;
+    const len=Math.hypot(dx,dy),radius=drag.size*.30,scale=len>radius?radius/len:1;
+    // Let the thumb reverse promptly even after a long swipe.
+    drag.x=x-dx*scale;drag.y=y-dy*scale;
+    stick.style.left=clamp(drag.x-drag.size/2,0,Math.max(0,drag.width-drag.size))+'px';
+    stick.style.top=clamp(drag.y-drag.size/2,0,Math.max(0,drag.height-drag.size))+'px';
+    stick.firstElementChild.style.transform='translate('+dx*scale+'px,'+dy*scale+'px)';
     stickForce=clamp((len/radius-.12)/.88,0,1);stickAim=stickForce>0?Math.atan2(dy,dx):null;
   }
-  const stick=$('stick'),trigger=$('trigger');
-  stick.onpointerdown=e=>{if(!running||stickPointer!==null)return;e.preventDefault();stickPointer=e.pointerId;stick.setPointerCapture(e.pointerId);moveStick(e);};
-  stick.onpointermove=e=>{if(stickPointer===e.pointerId)moveStick(e);};
-  stick.onpointerup=stick.onpointercancel=stick.onlostpointercapture=e=>{
-    if(stickPointer!==e.pointerId)return;stickPointer=null;stickForce=0;stickAim=null;stick.firstElementChild.style.transform='';
+  moveZone.onpointerdown=e=>{
+    if(!running || stickPointer!==null)return;
+    e.preventDefault();stickPointer=e.pointerId;moveZone.setPointerCapture(e.pointerId);
+    const size=stick.offsetWidth;
+    drag={bounds:moveZone.getBoundingClientRect(),rotated:portrait.matches,size,
+      width:moveZone.clientWidth,height:moveZone.clientHeight,x:stick.offsetLeft+size/2,y:stick.offsetTop+size/2};
+    const p=localPoint(e);
+    if(Math.hypot(p.x-drag.x,p.y-drag.y)>size/2){drag.x=p.x;drag.y=p.y;}
+    moveStick(e);
+  };
+  moveZone.onpointermove=e=>{if(stickPointer===e.pointerId)moveStick(e);};
+  moveZone.onpointerup=moveZone.onpointercancel=moveZone.onlostpointercapture=e=>{
+    if(stickPointer===e.pointerId)clearStick();
   };
   trigger.onpointerdown=e=>{
     if(!running||triggerPointer!==null)return;e.preventDefault();triggerPointer=e.pointerId;trigger.setPointerCapture(e.pointerId);
@@ -5063,7 +5148,7 @@ background:#242836;color:#faf9f5;font-size:12px;box-shadow:0 2px 8px #20233133}
   trigger.onpointerup=trigger.onpointercancel=trigger.onlostpointercapture=e=>{
     if(triggerPointer!==e.pointerId)return;triggerPointer=null;fireEdge(0,false);trigger.classList.remove('down');
   };
-  for(const el of [stick,trigger])el.oncontextmenu=e=>e.preventDefault();
+  for(const el of [moveZone,trigger])el.oncontextmenu=e=>e.preventDefault();
   function controls(){
     if(device==='mobile'){
       const p=inputs[0];p.aim=stickAim??undefined;
