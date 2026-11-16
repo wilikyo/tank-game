@@ -80,8 +80,6 @@ const build=crypto.createHash('sha256').update(html).update(client).update(style
 const metadata={...release,build};
 html=replaceOnce(html,app,client.replace('__TANK_RELEASE__',()=>JSON.stringify(metadata))+'\n'+patched);
 html=replaceOnce(html,'</head>',
-  '<link rel="manifest" href="./game.webmanifest">\n'+
-  '<link rel="apple-touch-icon" href="./tank-192.png">\n'+
   '<meta name="tank-version" content="'+release.version+'">\n'+
   '<meta name="tank-build" content="'+build+'">\n<style>'+styles+'</style>\n</head>');
 // Check the complete artifact before writing any deployable files.
