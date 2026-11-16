@@ -67,8 +67,8 @@ body.mobile .scoreboard{height:54px}body.mobile .portrait{height:36px;width:38px
 
 
 
-<meta name="tank-version" content="1.2.0">
-<meta name="tank-build" content="fc6397e8c22a1f6b">
+<meta name="tank-version" content="1.3.0">
+<meta name="tank-build" content="75362de761108033">
 <style>
 #release-version{font-variant-numeric:tabular-nums}
 .release-notes{margin:14px 0;border-top:1px solid #cccac3;padding-top:10px;font-size:12px}
@@ -1221,6 +1221,102 @@ background:#242836;color:#faf9f5;font-size:12px;box-shadow:0 2px 8px #20233133}
       return best;
     }
 
+    wallRoutes(me,missile){
+      const maze=this.atlas.maze,near=[];
+      for(const w of maze.walls){
+        const vertical=w.x2-w.x1<w.y2-w.y1;
+        const mid=vertical?(w.x1+w.x2)/2:(w.y1+w.y2)/2;
+        if(mid<.1 || mid>(vertical?maze.cols:maze.rows)-.1)continue;
+        const across=vertical?me.x:me.y, along=vertical?me.y:me.x;
+        const lo=vertical?w.y1:w.x1,hi=vertical?w.y2:w.x2;
+        const gap=Math.hypot(across-mid,along-clamp(along,lo,hi));
+        if(gap>2.1)continue;
+        near.push({mid,lo,hi,vertical,gap,along});
+      }
+      near.sort((a,b)=>a.gap-b.gap);
+      const routes=[];
+      for(const {mid,lo,hi,vertical,along} of near.slice(0,5)){
+        const missileAcross=vertical?missile.x:missile.y;
+        const away=missileAcross<mid?1:-1;
+        const point=(t,n)=>vertical?{x:mid+n,y:t}:{x:t,y:mid+n};
+        for(const sign of [-1,1]){
+          const entry=sign>0?lo:hi,other=sign>0?hi:lo;
+          const first=point(entry+sign*.25,away*.33);
+          const far=point(other-sign*.18,away*.33);
+          if(!walkable(maze,first,far))continue;
+          let points=[first,far,first];
+          if(!walkable(maze,me,first)){
+            // Round the tip at body clearance before crossing onto the far face.
+            const nearTip=point(entry-sign*.32,-away*.33),farTip=point(entry-sign*.32,away*.33);
+            if(Math.abs(along-entry)>2 || !walkable(maze,farTip,first))continue;
+            if(walkable(maze,me,farTip))points=[farTip,...points];
+            else if(walkable(maze,me,nearTip) && walkable(maze,nearTip,farTip))points=[nearTip,farTip,...points];
+            else continue;
+          }
+          routes.push({points,value:1.1*Number(!maze.visible(missile,first,TankArena.SHOT))-dist(me,points[0])*.6});
+        }
+      }
+      return routes.sort((a,b)=>b.value-a.value).slice(0,4);
+    }
+
+    defensiveGoal(game, me, foe, forecasts, field) {
+      const maze=game.maze, atlas=this.atlas, here=maze.cell(me);
+      const locked=field.missiles.seeds.filter(b=>b.targetId===me.id && b.age>=TankArena.SEEKER_DELAY);
+      const empty=(!me.item || me.item==='shield' || me.item==='mine') && game.count(me.id)===5;
+      if (!locked.length && !empty) return null;
+      const reload=empty ? this.traffic.release(me.id,.78) : 0;
+      const buffer=Math.min(4.5,2.2+reload*1.25);
+      const pursuers=empty ? game.tanks.filter(t=>t!==me && t.alive &&
+        dist(t,me)<buffer+1.4 && (maze.visible(t,me) || atlas.range(here,maze.cell(t))<6)) : [];
+      if (!locked.length && !pursuers.length) return null;
+
+      const shells=locked.slice().sort((a,b)=>dist(me,a)-dist(me,b));
+      const missile=shells[0];
+      const type=missile?'evadeSeeker':'keepDistance';
+      const routes=[];
+      for(const first of maze.links[here]){
+        const choices=[];
+        const visit=(cells)=>{
+          const last=cells.at(-1),point=atlas.centers[last];
+          if(cells.length>=2){
+            let value=-.9*atlas.depth[last];
+            if(missile){
+              const hidden=!maze.visible(missile,point,TankArena.SHOT);
+              value+=1.4*hidden+.45*Math.min(5,dist(missile,point));
+            }
+            if(pursuers.length){
+              const gap=Math.min(...pursuers.map(t=>dist(t,point)+
+                (maze.visible(t,point,TankArena.SHOT)?0:1)));
+              value+=Math.min(buffer+.5,gap)*1.3;
+            }
+            choices.push({cells,value});
+          }
+          if(cells.length<4)for(const next of maze.links[last]){
+            if(!cells.includes(next))visit([...cells,next]);
+          }
+        };
+        visit([here,first]);
+        choices.sort((a,b)=>b.value-a.value);
+        // Keep alternatives through each doorway, including reversing after a
+        // corner while the missile is still committed to its earlier heading.
+        let leading;
+        for(const choice of choices.slice(0,2)){
+          const points=choice.cells.slice(1).map(c=>atlas.centers[c]);
+          if(!walkable(maze,me,points[0]))points.unshift(atlas.centers[here]);
+          routes.push({points,value:choice.value});
+          leading??=points;
+        }
+        if(missile && leading?.length>=2){
+          routes.push({points:[leading[0],leading[1],leading[0]],value:choices[0].value-.5});
+        }
+      }
+      routes.sort((a,b)=>b.value-a.value);
+      if(missile)routes.push(...this.wallRoutes(me,missile));
+      if(!routes.length)return null;
+      return {type,p:routes[0].points[0],routes,pursuers,buffer,reload,missile,depth:atlas.depth,
+        foeLine:forecasts[0]?.line,foeId:foe.id};
+    }
+
     intercept(game, me, enemy, forecasts) {
       const atlas = this.atlas;
       const maze = game.maze;
@@ -1987,6 +2083,41 @@ background:#242836;color:#faf9f5;font-size:12px;box-shadow:0 2px 8px #20233133}
     return { drive, turn };
   }
 
+  function followPoint(p,target){
+    const a=bearing(p,target);
+    return Math.abs(angleDiff(a,p.a))>Math.PI/2 ? aimDrive(-1,a+Math.PI) : aimDrive(1,a);
+  }
+
+  // Score the time spent safe, not the raw number of wall hits. A missile
+  // bouncing toward the tank is still an immediate hazard in field.cost.
+  function defensiveValue(ctx,p,missiles,step){
+    const goal=ctx.goal;
+    let value=0;
+    if(goal.type==='evadeSeeker'){
+      let safestMargin=Infinity;
+      for(const shell of missiles || []){
+        if(shell.hitSelf){safestMargin=0;break;}
+        if(shell.done || shell.targetId!==ctx.me.id)continue;
+        const gap=dist(shell,p);
+        const away=(shell.x-p.x)*shell.dx+(shell.y-p.y)*shell.dy>0;
+        const delayed=gap>.63 && away && shell.age-shell.lastBank<.55;
+        const cover=shell.liveTarget===-1 && gap>.6;
+        safestMargin=Math.min(safestMargin,.48*Math.min(3.2,gap)+1.5*Number(delayed)+.95*Number(cover));
+      }
+      value+=Number.isFinite(safestMargin)?safestMargin:2.8;
+    }
+    let clearance=goal.buffer;
+    for(const foe of goal.pursuers){
+      const likely=foe.id===goal.foeId ? goal.foeLine?.[step+1] : null;
+      const opponent=likely && dist(p,likely)<dist(p,foe) ? likely : foe;
+      let gap=dist(p,opponent);
+      if(gap<clearance && !ctx.g.maze.visible(p,opponent,TankArena.SHOT))gap+=1.2;
+      clearance=Math.min(clearance,gap);
+    }
+    const urgency=(step+1)*H<=goal.reload+.15 ? 1 : .4;
+    return value-urgency*(1.4*(goal.buffer-clearance)+2.0*Math.max(0,1.5-clearance));
+  }
+
   function commandFor(move, tank, dt) {
     if (move.a !== undefined) {
       return {
@@ -2057,6 +2188,7 @@ background:#242836;color:#faf9f5;font-size:12px;box-shadow:0 2px 8px #20233133}
         progress: 0,
         aiming: 0,
         opportunity: 0,
+        protection: 0,
         change: 0,
         score: 0
       };
@@ -2064,7 +2196,8 @@ background:#242836;color:#faf9f5;font-size:12px;box-shadow:0 2px 8px #20233133}
 
     extend(ctx, node, move, count) {
       const p = pose(node.p);
-      const first = node.first || move;
+      let first = node.first || move;
+      let waypoint=0,protection=node.protection;
       const missiles = ctx.field.missiles.fork(node.missiles);
       const steps = node.steps + count;
       const line = node.history.slice();
@@ -2076,17 +2209,25 @@ background:#242836;color:#faf9f5;font-size:12px;box-shadow:0 2px 8px #20233133}
       let opportunity = node.opportunity;
       let previousGap = dist(p, ctx.goal.p);
       let change = node.change;
-      if (!node.first) change += Math.abs(move.drive - this.last.drive) * .025;
       for (let i = node.steps; i < steps; i++) {
         const start = pose(p);
         const arrived = !ctx.underFire && !ctx.combat && previousGap < .13;
-        const control = arrived && ctx.goal.watch ? commandFor(aimDrive(0,bearing(p,ctx.goal.watch)),p,H) :
-          arrived ? fixed(0, 0) : commandFor(move, p, H);
+        let steering=move;
+        if(move.points){
+          while(waypoint<move.points.length-1 && dist(p,move.points[waypoint])<.19)waypoint++;
+          steering=dist(p,move.points[waypoint])<.12 ? fixed(0,0) : followPoint(p,move.points[waypoint]);
+        }else if(arrived){
+          steering=ctx.goal.watch ? aimDrive(0,bearing(p,ctx.goal.watch)) : fixed(0,0);
+        }
+        if(i===0 && ctx.goal.routes)first=steering;
+        const control=commandFor(steering,p,H);
+        if(i===0)change+=Math.abs(first.drive-this.last.drive)*.025;
         advance(ctx.g, p, control, H);
         line.push(pose(p));
         const weight = 1 / (1 + .22 * i);
         const risk = ctx.field.cost(start, p, i);
         if (missiles) risk.danger = Math.max(risk.danger, ctx.field.missiles.advance(missiles,start,p,i));
+        if(ctx.goal.routes)protection+=weight*defensiveValue(ctx,p,missiles,i);
         damage += risk.danger * weight;
         peak = Math.max(peak, risk.danger * weight);
         exposure += risk.gun * weight;
@@ -2104,7 +2245,8 @@ background:#242836;color:#faf9f5;font-size:12px;box-shadow:0 2px 8px #20233133}
       const facing = ctx.combat ? 0 :
         Math.cos(angleDiff(bearing(p, ctx.goal.p), p.a)) * .18;
       const driveWeight = ctx.goal.type === 'close' ? 7.2 : ctx.goal.type === 'press' ? 5.1 : ctx.goal.type === 'flank' ? 4.4 : ctx.combat ? 1.35 : 5.2;
-      let score = progress * driveWeight + facing - change;
+      let score = progress * (ctx.goal.routes?1.3:driveWeight) + facing - change + protection;
+      if(ctx.goal.routes)score-=ctx.goal.depth[ctx.g.maze.cell(p)]*.85;
       score += aiming * 1.30 + opportunity * 2.25;
       if (ctx.goal.watch) {
         const watch=ctx.goal.watch;
@@ -2123,8 +2265,27 @@ background:#242836;color:#faf9f5;font-size:12px;box-shadow:0 2px 8px #20233133}
       if (!ctx.enemy.alive) score -= damage * .6;
       return {
         p, first, missiles, history: line, steps, damage, peak, exposure,
-        progress, aiming, opportunity, change, score
+        progress, aiming, opportunity, change, protection, score,
+        continuation:move,waypoint
       };
+    }
+
+    pursuitTail(ctx,node){
+      const p=pose(node.p),line=[ctx.me,...node.history];
+      const move=node.continuation;
+      let waypoint=node.waypoint;
+      // Only the finalists pay for another 1.2 seconds. A corner can look
+      // safe at the first turn and expose the tank on the missile's return.
+      for(let k=0;k<10;k++){
+        let steering=move;
+        if(move.points){
+          while(waypoint<move.points.length-1 && dist(p,move.points[waypoint])<.19)waypoint++;
+          steering=dist(p,move.points[waypoint])<.12 ? fixed(0,0) : followPoint(p,move.points[waypoint]);
+        }
+        advance(ctx.g,p,commandFor(steering,p,H),H);
+        line.push(pose(p));
+      }
+      return ctx.field.missiles.verifyLockedPath(ctx.goal.missile,line);
     }
 
     diversify(nodes, width) {
@@ -2142,7 +2303,7 @@ background:#242836;color:#faf9f5;font-size:12px;box-shadow:0 2px 8px #20233133}
 
     search(game, me, enemy, goal, shot, field, window = null) {
       const underFire = field.incoming();
-      const combat = enemy.alive && shot?.viable &&
+      const combat = !goal.routes && enemy.alive && shot?.viable &&
         (['advance','intercept','press','close','peek'].includes(goal.type) || shot.value > .77 ||
           (shot.seal && goal.type==='rotate'));
       const ctx = { g: game, me, enemy, goal, shot, field, underFire, combat, window };
@@ -2153,7 +2314,8 @@ background:#242836;color:#faf9f5;font-size:12px;box-shadow:0 2px 8px #20233133}
       // must earn its extra complexity by improving the same objective.
       let best = null;
       const partial = [];
-      const alternatives=field.alternateMissileTarget ? new Map() : null;
+      const lure=goal.type==='evadeSeeker';
+      const alternatives=field.alternateMissileTarget || lure ? new Map() : null;
       const consider=node=>{
         if (!best || node.score>best.score) best=node;
         if (alternatives && (!alternatives.has(node.first) || node.score>alternatives.get(node.first).score)) {
@@ -2166,6 +2328,7 @@ background:#242836;color:#faf9f5;font-size:12px;box-shadow:0 2px 8px #20233133}
         const long = this.extend(ctx, node, move, field.steps - 4);
         consider(long);
       }
+      for(const route of goal.routes || [])consider(this.extend(ctx,root,route,field.steps));
 
       if (underFire || best.peak > 2 || (combat && best.opportunity < .15)) {
         const crowded = game.bullets.length>18;
@@ -2184,8 +2347,12 @@ background:#242836;color:#faf9f5;font-size:12px;box-shadow:0 2px 8px #20233133}
         }
       }
       if (alternatives) {
-        const top=[...alternatives.values()].sort((a,b)=>b.score-a.score).slice(0,4);
-        best=field.missiles.audit(top,field.alternateMissileTarget);
+        const top=[...alternatives.values()].sort((a,b)=>b.score-a.score).slice(0,lure?7:4);
+        if(lure){
+          for(const node of top)node.score+=this.pursuitTail(ctx,node);
+          top.sort((a,b)=>b.score-a.score);
+        }
+        best=field.alternateMissileTarget ? field.missiles.audit(top.slice(0,4),field.alternateMissileTarget) : top[0];
       }
       const watching=!ctx.underFire && !ctx.combat && goal.watch && dist(me,goal.p)<.13;
       this.last = watching ? aimDrive(0,bearing(me,goal.watch)) : best.first;
@@ -3402,6 +3569,40 @@ background:#242836;color:#faf9f5;font-size:12px;box-shadow:0 2px 8px #20233133}
       return best;
     }
 
+    verifyLockedPath(source,line){
+      // Replay only the closest locked missile on finalists. Use the live
+      // wall reflection and hit order at 120 Hz, on isolated actor copies.
+      const trial=Object.create(this.game);
+      trial.tanks=this.game.tanks.map(t=>({...t}));
+      const me=trial.tanks[this.me.id],foe=trial.tanks[this.foe.id];
+      const shell={...source};
+      const tracked=this.game.tanks.indexOf(source.target);
+      if(tracked>=0)shell.target=trial.tanks[tracked];
+      let victim=null,cover=0,lastBank=-Infinity;
+      trial.hit=t=>{victim=t;};
+      const dt=TankArena.STEP;
+      const length=(line.length-1)*H;
+      for(let tick=1;tick*dt<=length;tick++){
+        const time=tick*dt;
+        shell.age+=dt;
+        if(shell.age>=shell.life)break;
+        Object.assign(me,TankTactics.positionAt(line,time));
+        if(this.forecast?.length)Object.assign(foe,TankTactics.positionAt(this.forecast,time));
+        this.guide(shell,me,foe,dt);
+        const dx=shell.dx,dy=shell.dy;
+        TankArena.Game.prototype.trace.call(trial,shell,shell.speed*dt,4);
+        if(victim===me)return cover-55/(1+.5*time);
+        if(shell.gone)break;
+        if(shell.targetId!==me.id)continue;
+        if(shell.dx!==dx || shell.dy!==dy)lastBank=time;
+        const gap=dist(shell,me);
+        const departing=(shell.x-me.x)*shell.dx+(shell.y-me.y)*shell.dy>0;
+        if(gap>.60 && time-lastBank<.65 && departing)cover+=3*dt;
+        if(gap>.60 && shell.liveTarget===-1)cover+=dt;
+      }
+      return cover;
+    }
+
     // First entry of two moving circles on a unit-time segment.
     firstContact(p,q,x,y,dx,dy) {
       const ox=p.x-x, oy=p.y-y;
@@ -3433,14 +3634,15 @@ background:#242836;color:#faf9f5;font-size:12px;box-shadow:0 2px 8px #20233133}
           if (enemyHit<ourHit || (enemyHit===ourHit && hitId>this.me.id)) closest=Infinity;
         }
       }
-      if (enemyHit!==Infinity || closest<=BODY+SHOT) shell.done=true;
+      if (closest<=BODY+SHOT)shell.hitSelf=true;
+      if (enemyHit!==Infinity || shell.hitSelf) shell.done=true;
       return closest;
     }
 
     advance(states, p, q, step, forecast=this.forecast) {
       if (!states || states.every(s=>s.done)) return 0;
-      const enemy0=forecast?.[step]||this.foe;
-      const enemy1=forecast?.[step+1]||this.foe;
+      const enemy0=forecast?.[step]||forecast?.at(-1)||this.foe;
+      const enemy1=forecast?.[step+1]||enemy0;
       let risk=0;
       // Split each movement segment to follow the missile's limited turn radius.
       for (let n=1;n<=3;n++) {
@@ -3471,7 +3673,10 @@ background:#242836;color:#faf9f5;font-size:12px;box-shadow:0 2px 8px #20233133}
           } else {
             const path=flight(this.game.maze,shell,Math.atan2(shell.dy,shell.dx),len,SHOT,4);
             for (const part of path) {
-              if (part.bounced) shell.armed=true;
+              if (part.bounced) {
+                shell.armed=true;
+                if(shell.targetId===this.me.id)shell.lastBank=shell.age;
+              }
               const span=part.end-part.start;
               const point=(p,q,t)=>({x:p.x+(q.x-p.x)*t,y:p.y+(q.y-p.y)*t});
               shell.x=part.x; shell.y=part.y;
@@ -4246,6 +4451,7 @@ background:#242836;color:#faf9f5;font-size:12px;box-shadow:0 2px 8px #20233133}
     invalidate(game, me, foe, input) {
       const prev = this.lastWorld;
       if (!prev) return true;
+      if (prev.empty !== (game.count(me.id)===5)) return true;
       if (prev.alive !== foe.alive || prev.item !== me.item || prev.enemyItem !== foe.item) return true;
       if (prev.drops !== game.items.length || prev.mineCount !== game.mines.length) return true;
       if (game.time - prev.time < .025) return false;
@@ -4261,6 +4467,7 @@ background:#242836;color:#faf9f5;font-size:12px;box-shadow:0 2px 8px #20233133}
     snapshot(game, me, foe, input) {
       return {
         alive: foe.alive,
+        empty: game.count(me.id)===5,
         item: me.item,
         enemyItem: foe.item,
         drops: game.items.length,
@@ -4298,8 +4505,9 @@ background:#242836;color:#faf9f5;font-size:12px;box-shadow:0 2px 8px #20233133}
       const field = new TankThreatField(game, me, foe, input, this.forecasts, guided ? 16 : 12);
       field.alternateMissileTarget=field.missiles.alternative(this.forecasts);
       field.beams = this.weapons.ordnance.beamPaths(game, foe, this.forecasts[0]?.line, input);
-      const goal = this.duel.goal(game,me,foe,usual,this.navigation,this.attack,this.forecasts,field);
-      const window = new TankAttackWindow(game, me, foe, this.forecasts);
+      const defense=this.navigation.defensiveGoal(game,me,foe,this.forecasts,field);
+      const goal = defense || this.duel.goal(game,me,foe,usual,this.navigation,this.attack,this.forecasts,field);
+      const window = defense ? null : new TankAttackWindow(game, me, foe, this.forecasts);
       this.plan = this.movement.search(game, me, foe, goal, this.attack, field, window);
       this.intent = goal.type;
       this.lastWorld = this.snapshot(game, me, foe, input);
@@ -4478,7 +4686,7 @@ background:#242836;color:#faf9f5;font-size:12px;box-shadow:0 2px 8px #20233133}
 /* Embedded by build-release.cjs. Version checks never drive the simulation. */
 (function () {
   'use strict';
-  const current = {"version":"1.2.0","date":"2026-11-15","title":"观战模式、多人混战与倍速","notes":["选择电脑或手机后，可进入对战模式或观战模式。","观战支持 2～5 台人机混战，每台可独立选择简单、中等或困难。","观战中可随时切换 1×、2×、4× 倍速，保留当前局面与比分。","倍速按相同物理步推进，人机判断、碰撞与游戏规则保持一致；实际速度取决于设备性能。","多人混战只剩一台时开始 2.5 秒结算；撑到结束者加分，期间全员阵亡则平局。","观战适配手机横屏，并可通过暂停菜单调整阵容；新阵容从零计分。"],"build":"fc6397e8c22a1f6b"};
+  const current = {"version":"1.3.0","date":"2026-11-15","title":"优化人机反击","notes":["优化了人机躲避追踪弹的逻辑，提高了反击的准确性。","优化了人机在耗尽子弹时的逻辑"],"build":"75362de761108033"};
   let hooks, latest = null, checking = false, refreshing = false, prompted = '', error = '';
   const notice = document.createElement('aside');
   notice.id = 'release-notice';
